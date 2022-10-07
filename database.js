@@ -1,11 +1,11 @@
 const mysql = require('mysql');
 
 const credencials = {
-    host:'sql10.freesqldatabase.com',
-    user:'sql10511361',
-    password:'vxfJyJNUux',
-    database:'sql10511361',
-    port:'3306'
+    host:'remotemysql.com',
+    user:'VIbrimMy5a',
+    password:'WfpsC3j6At',
+    database:'VIbrimMy5a',
+    port: '3306'
 }
 
 const mysqlConnection = mysql.createConnection(credencials);
