@@ -9,6 +9,7 @@ app.use(express.json());
 app.use(express.urlencoded({
     extended: true
   }));
+
 app.set("json spaces",2);
 app.use('/files', express.static('public'));
 
@@ -19,11 +20,40 @@ app.use('/files', express.static('public'));
     database:'crepids'
 }*/
 
+
 app.get('/',(req, res)=>{
     res.send('hola desde tu primera ruta de la api')
 });
 
-app.use(require('./routes/login'));
+app.get('/listacalicar',(req, res)=>{
+    var connection = mysqlConnection;
+    connection.query("SELECT * FROM tbl_proystat ",(error, result)=>{
+            if(error)
+                res.status(500).send(error);
+            else
+                res.status(200).send(result);
+        }
+    );
+    connection.end;
+});
+
+app.get('/listaDocentes/:all',(req, res)=>{
+    
+    var connection = mysqlConnection;    
+    connection.query("SELECT a.codigoDocentex as value, CONCAT(a.nombreDocentex,' ',a.apelliDocentex,' - ',b.nombreEtapaxxx) as label"+
+    " FROM tbl_docentex a LEFT JOIN tbl_etapaxxx b ON a.codigoEtapaxxx = b.codigoEtapaxxx ",(error, result)=>{
+            if(error)
+                res.status(500).send(error);
+            else{
+                res.status(200).send(result);
+            }
+        } 
+    );
+    connection.end;
+});
+
+
+//app.use(require('./routes/login'));
 
 app.post('/register',(req,res)=>{
     console.log(req.body);
@@ -84,32 +114,6 @@ app.use('/api/login',require('./routes/login'));
 app.use('/api/proyecto',require('./routes/proyecto')); 
 app.use('/api/asesorias',require('./routes/asesorias')); 
 
-app.get('/listacalicar',(req, res)=>{
-    var connection = mysqlConnection;
-    connection.query("SELECT * FROM tbl_proystat ",(error, result)=>{
-            if(error)
-                res.status(500).send(error);
-            else
-                res.status(200).send(result);
-        }
-    );
-    connection.end;
-});
-
-app.get('/listaDocentes/:all',(req, res)=>{
-    
-    var connection = mysqlConnection;    
-    connection.query("SELECT codigoDocentex as value, CONCAT(nombreDocentex,' ',apelliDocentex) as label FROM tbl_docentex ",(error, result)=>{
-            if(error)
-                res.status(500).send(error);
-            else{
-                res.status(200).send(result);
-            }
-                
-        }
-    );
-    connection.end;
-});
 
 
-app.listen(4000,()=>console.log('hola soy el servidor'));
+app.listen(4000,()=>console.log('Server API'));

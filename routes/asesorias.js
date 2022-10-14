@@ -76,7 +76,31 @@ router.post('/register',(req,res)=>{
             });
         }
     })
-    connection.end;
+    connection.end; 
+});  
+
+router.get("/getSchedule/:emailxUsuariox/:profile",(req,res)=>{
+    let connection = mysqlConnection; 
+    const {emailxUsuariox,profile} = req.params;
+    var estado = [{"estado":false, "message":"Error al consultar en la Base de Datos, intente más tarde"}];
+    estado = estado[0];
+    if(atob(profile,"base64")==3){
+        
+        search="codigoEstudnte";
+        connection.query("SELECT a.* FROM tbl_estudisp a "
+        +" LEFT JOIN tbl_estudnte b ON a.codigoEstudnte = b.codigoEstudnte WHERE emailxUsuariox = ?",[emailxUsuariox],(error,result)=>{
+            if(error){
+                estado['message']=error;
+                res.status(500).send(estado);
+            }else{
+                res.status(200).send(result);
+            }
+        });
+
+    }else{
+        estado['message']="Error de Usuario";
+        res.status(500).send(estado);
+    }
 });
 
 router.get('/list/:emailxUsuariox/:profile', (req,res)=>{
@@ -86,7 +110,7 @@ router.get('/list/:emailxUsuariox/:profile', (req,res)=>{
     estado = estado[0];
     let codigo="";
     let search="";
-    console.log(req.params);
+   // console.log(req.params);
     if(atob(profile,"base64")==3){
         
         search="codigoEstudnte";
@@ -118,7 +142,8 @@ router.get('/list/:emailxUsuariox/:profile', (req,res)=>{
                 res.status(500).send(estado);
             }else{
                 codigo = result[0].codigoDocentex;
-                connection.query("SELECT a.*, DATE_FORMAT(fechaxAsesoria,'%Y/%m/%d') as fecha,IF(a.numeroEstadoxx = 1,'En Proceso','Agendado') as estado, CONCAT(b.nombreEstudnte,' ', b.apelliEstudnte) as nombreEstudnte "
+                connection.query("SELECT a.*, DATE_FORMAT(fechaxAsesoria,'%Y/%m/%d') as fecha,IF(a.numeroEstadoxx = 1,'En Proceso','Agendado') as estado, CONCAT(b.nombreEstudnte,' ', b.apelliEstudnte) as nombreEstudnte, "
+                +" b.emailxUsuariox as emailxEstudnte"
                 +" FROM tbl_asesoria a LEFT JOIN tbl_estudnte b ON a.codigoEstudnte = b.codigoEstudnte "
                 +" WHERE "+search+" = ? "+
                 " AND IF(a.fechaxAsesoria IS NULL, 1=1, a.fechaxAsesoria >= CURDATE())",[codigo],(error,result)=>{
