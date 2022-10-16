@@ -49,14 +49,41 @@ const almacen = multer.diskStorage({
 }); 
  
 const actualizar = multer({storage: almacen});
-  
+
+const savePicture = multer.diskStorage({
+    destination: function(req,file,cb){
+        console.log(req.body);
+        if(file){
+            DIRECTORIO ='./files/'+req.body.emailxUsuariox;
+            if(fs.existsSync(DIRECTORIO)){
+                console.log("existe"); 
+            }else{
+                fs.mkdirSync(DIRECTORIO,true);
+                fs.chmod(DIRECTORIO, 0o777, (err) => {
+                    if (err) throw err;
+                    console.log('The permissions for file "my_file.txt" have been changed!');
+                });
+            }
+            cb(null,DIRECTORIO);
+        }
+    },
+    filename: function(req,file,cb){
+        console.log(req.body);
+        if(file){
+            cb(null,'pictureProfile.png')
+        }
+    }
+}); 
+ 
+const changePicture = multer({storage: savePicture});
+ 
 router.post('/user',(req,res)=>{
     //console.log(req.body);
     //const {emailxUsuariox, clavexUsuariox} = req.body;
     const emailxUsuariox = req.body.email;
     const clavexUsuariox = req.body.password;
     var estado = [{"estado":false, "message":"El usuario no existe"}];
-    estado = estado[0];
+    estado = estado[0];   
 
     var connection = mysqlConnection;
     connection.query("SELECT a.*, UPPER(a.nombreUsuariox) as username FROM tbl_usuarios a WHERE a.emailxUsuariox= ? ",
@@ -177,7 +204,7 @@ router.get('/:emailxUsuariox/:codigoProfilex',(req,res)=>{
                 estado[0]['clavexUsuariox'] = result[0]['clavexUsuariox'];
                 res.status(200).send(estado[0]);
             }
-        }
+        }  
         );  
     }
     else if(atob(codigoProfilex,'base64')==3){
@@ -307,7 +334,7 @@ router.post("/updateDatas",actualizar.single("documeProyecto"),(req,res)=>{
     });
     
     connection.end;
-}) 
+})  
  
 router.post("/registerTeacher",(req,res)=>{
     
@@ -378,7 +405,35 @@ router.post("/registerTeacher",(req,res)=>{
             
         }
     });
+    connection.end;
+})  
 
+router.post("/changePicture",changePicture.single("filePicture"),(req,res)=>{
+    var connection = mysqlConnection;
+    var {emailxUsuariox} = req.body;
+    var estado = [{"estado":false, "message":"No se pudo Realizar el Registro"}];
+    estado = estado[0];
+    connection.query("START TRANSACTION",(error,result)=>{
+        if(error){
+            estado['message']=error;
+            connection.query("ROLLBACK");
+            res.status(200).send(estado);
+        }else{
+            connection.query("UPDATE tbl_usuarios SET picturUsuariox = '1' WHERE emailxUsuariox = ?",[emailxUsuariox],(error,result)=>{
+                if(error){
+                    estado['message']=error;
+                    connection.query("ROLLBACK");
+                    res.status(200).send(estado);
+                }else{
+                    estado['message']='El Cambio se realizó correctamente';
+                    estado['estado']=true;
+                    connection.query("COMMIT");
+                    res.status(200).send(estado);
+                }
+            })
+        }
+    });
+    connection.end; 
 })
 /*
 para verificar el token lo mandamos en el tercer parametro de la consulta que se haga

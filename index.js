@@ -11,6 +11,7 @@ app.use(express.urlencoded({
   }));
 
 app.set("json spaces",2);
+app.use('/files', express.static('files'));
 app.use('/files', express.static('public'));
 
 /*const credencials = {
