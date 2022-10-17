@@ -21,16 +21,18 @@ router.post('/register',(req,res)=>{
     const vierneHorafinx = req.body.vierneHorafinx;
     
     let   codigoEstudnte = "";
+    let   nombreEstudnte = "";
 
     var estado = [{"estado":false, "message":"Error al Registrar en la Base de Datos, intente más tarde"}];
     estado = estado[0];
 
     var connection = mysqlConnection;
  
-    connection.query("SELECT codigoEstudnte FROM tbl_estudnte WHERE emailxUsuariox=?",[emailxUsuariox],(error,result)=>{
+    connection.query("SELECT codigoEstudnte, nombreEstudnte, apelliEstudnte FROM tbl_estudnte WHERE emailxUsuariox=?",[emailxUsuariox],(error,result)=>{
         if(result){
             console.log(result);
             codigoEstudnte = result[0]['codigoEstudnte'];
+            nombreEstudnte = result[0]['nombreEstudnte']+' '+result[0]['apelliEstudnte'];
             connection.query("START TRANSACTION",(error,result)=>{
                 if(error){
                     estado['message']=error;
@@ -63,6 +65,8 @@ router.post('/register',(req,res)=>{
                                             connection.query("ROLLBACK",(error,result)=>{});
                                             res.status(500).send(estado);
                                         }else{
+                                            const tbl_histnoti = [codigoDocentex,'Solicitud de Asesoria','El estudiante '+nombreEstudnte+' te pidió una solicitud de Asesoria','meet'];
+                                            connection.query("INSERT INTO tbl_histnoti(codigoUsuariox, nombreNotifica, descriNotifica, tipoxxNotifica, fechaxCreacion) VALUES (?,NOW())",[tbl_histnoti]);
                                             estado['estado']=true;
                                             connection.query("COMMIT",(error,result)=>{});
                                             estado['message']="Asesoria solicitada Correctamente";  
@@ -198,6 +202,14 @@ router.post('/updateAsesoria',(req,res)=>{
                         connection.query("ROLLBACK",(error,result)=>{});
                         res.status(500).send(estado);
                     }else{
+                        connection.query("SELECT codigoEstudnte FROM tbl_asesoria WHERE codigoAsesoria = ?",[codigoAsesoria],(error,valor)=>{
+                            if(valor){
+                                const codigoEstudnte = valor[0]['codigoEstudnte'];
+                                const tbl_histnoti = [codigoEstudnte,'Asesoria aceptada','El Docente ha aceptado tu asesoría','meet'];
+                                connection.query("INSERT INTO tbl_histnoti(codigoUsuariox, nombreNotifica, descriNotifica, tipoxxNotifica, fechaxCreacion) VALUES (?,NOW())",[tbl_histnoti]);
+                            }
+                        })
+                        
                         estado['estado']=true;
                         connection.query("COMMIT",(error,result)=>{});
                         estado['message']="Datos Registrados Correctamente";  

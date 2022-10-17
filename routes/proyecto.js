@@ -136,15 +136,17 @@ router.post('/register',upload.single("documeProyecto"),(req,res)=>{
     const nombreArchivox = req.body.nombreArchivox;
     
     let   codigoEstudnte = "";
+    let   nombreEstudnte = "";
 
     var estado = [{"estado":false, "message":"Error al Registrar en la Base de Datos, intente más tarde"}];
     estado = estado[0];
 
     var connection = mysqlConnection;
  
-    connection.query("SELECT codigoEstudnte FROM tbl_estudnte WHERE emailxUsuariox = ?",[emailxUsuariox],(error,result)=>{
+    connection.query("SELECT codigoEstudnte, nombreEstudnte, apelliEstudnte FROM tbl_estudnte WHERE emailxUsuariox = ?",[emailxUsuariox],(error,result)=>{
         if(result){
             codigoEstudnte = result[0]['codigoEstudnte'];
+            nombreEstudnte = result[0]['nombreEstudnte']+' '+result[0]['apelliEstudnte'];
             const insertarProyecto =[codigoEstudnte,nombreProyecto,descriProyecto,nombreArchivox];
             connection.query("START TRANSACTION",(error,result)=>{
                 if(error){
@@ -160,6 +162,13 @@ router.post('/register',upload.single("documeProyecto"),(req,res)=>{
                         connection.query("ROLLBACK",(error,result)=>{});
                         res.status(500).send(estado);
                     }else{
+                        connection.query("SELECT codigoDocentex FROM tbl_grupoxxx WHERE codigoEstudnte = ?",[codigoEstudnte],(error,valor)=>{
+                            if(valor){
+                                const codigoDocentex = valor[0]['codigoDocentex'];
+                                const tbl_histnoti = [codigoDocentex,'Revisión de Proyecto','El estudiante '+nombreEstudnte+' ha empezado un proyecto','proyect'];
+                                connection.query("INSERT INTO tbl_histnoti(codigoUsuariox, nombreNotifica, descriNotifica, tipoxxNotifica, fechaxCreacion) VALUES (?,NOW())",[tbl_histnoti]);
+                            }
+                        })
                         estado['estado']=true;
                         connection.query("COMMIT",(error,result)=>{});
                         estado['message']="Proyecto Registrado Correctamente";  
@@ -204,6 +213,13 @@ router.post('/update',actualizar.single("documeProyecto"),(req,res)=>{
                             connection.query("ROLLBACK",(error,result)=>{});
                             res.status(500).send(estado);
                         }else{
+                            connection.query("SELECT codigoEstudnte FROM tbl_proyecto WHERE codigoProyecto = ?",[codigoProyecto],(error,valor)=>{
+                                if(valor){
+                                    const codigoEstudnte = valor[0]['codigoEstudnte'];
+                                    const tbl_histnoti = [codigoEstudnte,'Revisión de Proyecto','El Docente ha revisado tu proyecto','proyect'];
+                                    connection.query("INSERT INTO tbl_histnoti(codigoUsuariox, nombreNotifica, descriNotifica, tipoxxNotifica, fechaxCreacion) VALUES (?,NOW())",[tbl_histnoti]);
+                                }
+                            })
                             estado['estado']=true;
                             connection.query("COMMIT",(error,result)=>{});
                             estado['message']="Datos Registrados Correctamente";  
@@ -216,7 +232,7 @@ router.post('/update',actualizar.single("documeProyecto"),(req,res)=>{
                     codigoEtapaxxx=Number(codigoEtapaxxx)+1;
                     codigoProystat=1;
                 }
-
+                console.log(codigoProystat);
                 connection.query(
                     "UPDATE tbl_proyecto SET codigoEtapaxxx = ?, codigoProystat = ?, observDocentex=?, fechaxDocentex = NOW(), estadoNotifica=1"+
                     " WHERE codigoProyecto = ?",
@@ -227,6 +243,13 @@ router.post('/update',actualizar.single("documeProyecto"),(req,res)=>{
                             connection.query("ROLLBACK",(error,result)=>{});
                             res.status(500).send(estado);
                         }else{
+                            connection.query("SELECT codigoEstudnte FROM tbl_proyecto WHERE codigoProyecto = ?",[codigoProyecto],(error,valor)=>{
+                                if(valor){
+                                    const codigoEstudnte = valor[0]['codigoEstudnte'];
+                                    const tbl_histnoti = [codigoEstudnte,'Revisión de Proyecto','El Docente ha revisado tu proyecto','proyect'];
+                                    connection.query("INSERT INTO tbl_histnoti(codigoUsuariox, nombreNotifica, descriNotifica, tipoxxNotifica, fechaxCreacion) VALUES (?,NOW())",[tbl_histnoti]);
+                                }
+                            })
                             estado['estado']=true;
                             connection.query("COMMIT",(error,result)=>{});
                             estado['message']="Datos Registrados Correctamente";  
@@ -267,6 +290,14 @@ router.post('/updateProyect',actualizar.single("documeProyecto"),(req,res)=>{
                         connection.query("ROLLBACK",(error,result)=>{});
                         res.status(500).send(estado);
                     }else{
+                        connection.query("SELECT b.codigoDocentex, a.nombreEstudnte, a.apelliEstudnte FROM tbl_estudnte a LEFT JOIN tbl_grupoxxx b ON a.codigoEstudnte = b.codigoEstudnte WHERE a.emailxUsuariox = ?",[emailxUsuariox],(error,valor)=>{
+                            if(valor){
+                                const codigoDocentex = valor[0]['codigoDocentex'];
+                                const nombreEstudnte = result[0]['nombreEstudnte']+' '+result[0]['apelliEstudnte'];
+                                const tbl_histnoti = [codigoDocentex,'Revisión de Proyecto','El estudiante '+nombreEstudnte+' ha realizado un nuevo cambio en su proyecto','proyect'];
+                                connection.query("INSERT INTO tbl_histnoti(codigoUsuariox, nombreNotifica, descriNotifica, tipoxxNotifica, fechaxCreacion) VALUES (?,NOW())",[tbl_histnoti]);
+                            }
+                        })
                         estado['estado']=true;
                         connection.query("COMMIT",(error,result)=>{});
                         estado['message']="Datos Registrados Correctamente";  

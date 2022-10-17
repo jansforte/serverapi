@@ -396,7 +396,7 @@ router.post("/registerTeacher",(req,res)=>{
                                             estado['message']="Usuario Registrado Correctamente";
                                             res.status(200).send(estado);
                                         }
-                                    });
+                                    }); 
                             }
                         }
                     );
@@ -435,6 +435,96 @@ router.post("/changePicture",changePicture.single("filePicture"),(req,res)=>{
     });
     connection.end; 
 })
+
+router.get("/getAllUsers/1/all",(req,res)=>{
+    const connection = mysqlConnection;
+    const {f_codigoPerfilxx,f_codigoEtapaxxx,f_buscador} = req.query;
+    
+    let f_tipoxOrdenxxx = req.params.tipoxOrdenxxx ? req.params.tipoxOrdenxxx : 'ASC'; 
+    if(!f_codigoPerfilxx){
+    //nombreUsuario, tipoUsuario, etapa
+        let condicEtapad = "";
+        let condicEtapae = "";
+        if(f_codigoEtapaxxx){
+            condicEtapad = " AND a.codigoEtapaxxx = "+f_codigoEtapaxxx;
+            condicEtapae = " AND c.codigoEtapaxxx = "+f_codigoEtapaxxx;
+        }
+
+        let consultaBuscadord="";
+        let consultaBuscadore="";
+        if(f_buscador){
+            consultaBuscadord=" AND (a.nombreDocentex LIKE '%"+f_buscador+"%' OR a.apelliDocentex LIKE '%"+f_buscador+"%' "+
+            " OR a.emailxUsuariox LIKE '%"+f_buscador+"%' OR a.profesDocentex LIKE '%"+f_buscador+"%' OR a.codigoDocentex LIKE '%"+f_buscador+"%' ) ";
+            consultaBuscadore=" AND (a.nombreEstudnte LIKE '%"+f_buscador+"%' OR a.apelliEstudnte LIKE '%"+f_buscador+"%' "+
+            " OR a.emailxUsuariox LIKE '%"+f_buscador+"%' OR a.profesEstudnte LIKE '%"+f_buscador+"%' OR a.codigoEstudnte LIKE '%"+f_buscador+"%' ) ";
+        }
+
+        let filtroDocentex = "SELECT UPPER(a.nombreDocentex) as nombreBusqueda, UPPER(a.apelliDocentex) as apelliBusqueda, a.codigoEtapaxxx, "+
+        "a.generoDocentex as generoBusqueda, a.fechaxNacimien, a.profesDocentex as profesBusqueda, "+
+        "a.numeroCelularx, a.emailxUsuariox, a.codigoDocentex as codigoBusqueda, b.nombreUsuariox, 'Docente' as codigoPerfilxx "+
+        "FROM tbl_docentex a LEFT JOIN tbl_usuarios b ON a.emailxUsuariox = b.emailxUsuariox "+
+        "WHERE 1 = 1 "+condicEtapad + consultaBuscadord;
+        let filtroEstudnte = "SELECT UPPER(a.nombreEstudnte) as nombreBusqueda, UPPER(a.apelliEstudnte) as apelliBusqueda, IF(c.codigoEtapaxxx IS NULL,'N/A', c.codigoEtapaxxx) codigoEtapaxxx, "+
+        "a.generoEstudnte as generoBusqueda, a.fechaxNacimien, a.profesEstudnte as profesBusqueda, "+
+        "a.numeroCelularx, a.emailxUsuariox, a.codigoEstudnte as codigoBusqueda, b.nombreUsuariox, 'Estudiante' as codigoPerfilxx "+
+        "FROM tbl_estudnte a LEFT JOIN tbl_usuarios b ON a.emailxUsuariox = b.emailxUsuariox "+
+        " LEFT JOIN tbl_proyecto c ON a.codigoEstudnte = c.codigoEstudnte"+
+        "WHERE 1 = 1 "+condicEtapae+ consultaBuscadore+
+        " ORDER BY codigoBusqueda "+f_tipoxOrdenxxx;
+        connection.query(
+            filtroDocentex+" UNION "+filtroEstudnte
+            ,(error,result)=>{
+                if(result){
+                    res.status(200).send(result);
+                }else{
+                    res.status(200).send(false);
+                }
+            });
+    }
+    else if(f_codigoPerfilxx){
+        let condicEtapad = "";
+        let condicEtapae = "";
+        if(f_codigoEtapaxxx){
+            condicEtapad = " AND a.codigoEtapaxxx = "+f_codigoEtapaxxx;
+            condicEtapae = " AND c.codigoEtapaxxx = "+f_codigoEtapaxxx;
+        }
+        let conde = condicEtapad;
+        let tabla = "docentex";
+        let colum = "Docentex";
+        let tipou = "Docente";
+        let leftj = "";
+        let colef = "a.codigoEtapaxxx";
+        if(f_codigoPerfilxx==3){
+            tabla = "estudnte";
+            colum = "Estudnte";
+            tipou = "Estudiante";
+            leftj = "LEFT JOIN tbl_proyecto c ON a.codigoEstudnte = c.codigoEstudnte";
+            colef = "IF(c.codigoEtapaxxx IS NULL,'N/A', c.codigoEtapaxxx)";
+            conde = condicEtapae;
+        }
+        
+        let consultaBuscador="";
+        if(f_buscador){
+            consultaBuscador=" AND (a.nombre"+colum+" LIKE '%"+f_buscador+"%' OR a.apelli"+colum+" LIKE '%"+f_buscador+"%' "+
+            " OR a.emailxUsuariox LIKE '%"+f_buscador+"%' OR a.profes"+colum+" LIKE '%"+f_buscador+"%' OR a.codigo"+colum+" LIKE '%"+f_buscador+"%' ) ";
+        }
+
+        let filtroBusqueda = "SELECT UPPER(a.nombre"+colum+") as nombreBusqueda, UPPER(a.apelli"+colum+") as apelliBusqueda, "+colef+" as codigoEtapaxxx, "+
+        "a.genero"+colum+" as generoBusqueda, a.fechaxNacimien, a.profes"+colum+" as profesBusqueda, "+
+        "a.numeroCelularx, a.emailxUsuariox, a.codigo"+colum+" as codigoBusqueda, b.nombreUsuariox, '"+tipou+"' as codigoPerfilxx "+
+        "FROM tbl_"+tabla+" a LEFT JOIN tbl_usuarios b ON a.emailxUsuariox = b.emailxUsuariox "+leftj+
+        " WHERE 1 = 1 "+conde+consultaBuscador+
+        " ORDER BY codigoBusqueda "+f_tipoxOrdenxxx;
+        connection.query(filtroBusqueda,(error,result)=>{
+            if(result){
+                res.status(200).send(result);
+            }else{
+                res.status(200).send(error);
+            }
+        })
+    }
+    connection.end;
+});
 /*
 para verificar el token lo mandamos en el tercer parametro de la consulta que se haga
 ejemplo: router.get('/:emailxUsuariox/proyecto',verifytoken,(req,res)=>{}) se manda por 
