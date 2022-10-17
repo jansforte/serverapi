@@ -66,6 +66,26 @@ router.get('/:email',(req,res)=>{
     connection.end;
 });
 
+router.get("/exist/doc/:emailxUsuariox",(req,res)=>{
+    var connection = mysqlConnection;
+    let {emailxUsuariox} = req.params;
+    if(emailxUsuariox){
+        connection.query("SELECT a.codigoProyecto FROM tbl_proyecto a "+
+        " LEFT JOIN tbl_estudnte b ON a.codigoEstudnte = b.codigoEstudnte "+
+        " WHERE b.emailxUsuariox = ?",[emailxUsuariox],(error,result)=>{
+            if(result[0]){
+                res.status(200).send(true);
+            }else{
+                res.status(200).send(false);        
+            }
+        })
+    }
+    else{
+        res.status(200).send(false);
+    }
+    connection.end;
+});
+
 router.get('/list/all',(req,res)=>{
     var connection = mysqlConnection;
     var {profile} = req.query.profile;
@@ -314,6 +334,6 @@ router.post('/updateProyect',actualizar.single("documeProyecto"),(req,res)=>{
 para verificar el token lo mandamos en el tercer parametro de la consulta que se haga
 ejemplo: router.get('/:emailxUsuariox/proyecto',verifytoken,(req,res)=>{}) se manda por 
 beaser token en postman 
-*/
+*/   
 
 module.exports = router;

@@ -125,7 +125,7 @@ router.post('/userEmail',(req,res)=>{
     estado = estado[0];
 
     var connection = mysqlConnection;
-    connection.query("SELECT a.emailxUsuariox, a.codigoPerfilxx, a.clavexUsuariox, UPPER(a.nombreUsuariox) as username FROM tbl_usuarios a WHERE a.emailxUsuariox= ? ",
+    connection.query("SELECT a.emailxUsuariox, a.codigoPerfilxx, a.clavexUsuariox, UPPER(a.nombreUsuariox) as username,a.picturUsuariox FROM tbl_usuarios a WHERE a.emailxUsuariox= ? ",
     [emailxUsuariox], 
         (error, result)=>{
             if(error){
@@ -519,9 +519,57 @@ router.get("/getAllUsers/1/all",(req,res)=>{
             if(result){
                 res.status(200).send(result);
             }else{
-                res.status(200).send(error);
+                res.status(200).send(false);
             }
         })
+    }
+    connection.end;
+});
+
+router.get("/getNotify/profile/:emailxUsuariox/:profile",(req,res)=>{
+    const connection = mysqlConnection;
+    const {emailxUsuariox,profile} = req.params;
+    if(atob(profile,'base64')==2){
+        connection.query("SELECT a.* FROM tbl_histnoti a LEFT JOIN tbl_docentex b ON a.codigoUsuariox = b.codigoDocentex "+
+        " WHERE b.emailxUsuariox = ? ",[emailxUsuariox],(error,result)=>{
+            if(result){
+                res.status(200).send(result);
+            }else{
+                res.status(200).send(false);
+            }
+        });
+    }else if(atob(profile,'base64')==3){
+        connection.query("SELECT a.* FROM tbl_histnoti a LEFT JOIN tbl_estudnte b ON a.codigoUsuariox = b.codigoEstudnte "+
+        " WHERE b.emailxUsuariox = ? AND a.estadoNotifica != 1 ORDER BY a.fechaxCreacion ASC",[emailxUsuariox],(error,result)=>{
+            if(result){
+                res.status(200).send(result);
+            }else{
+                res.status(200).send(false);
+            }
+        });
+    }else{
+        res.status(200).send(false);
+    }
+    connection.end;
+});
+
+router.put("/updateNotify/:codigoHistnoti",(req,res)=>{
+    let connection = mysqlConnection;
+    const {codigoHistnoti} = req.params;
+    if(codigoHistnoti){
+        connection.query("START TRANSACTION");
+        connection.query("UPDATE tbl_histnoti SET estadoNotifica=1 WHERE codigoHistnoti = ?",[codigoHistnoti],(error,result)=>{
+            if(error){
+                connection.query("ROLLBACK");
+                res.status(200).send(false);
+            }else{
+                connection.query("COMMIT");
+                res.status(200).send(true);
+            }
+        })
+    }
+    else{
+        res.status(500).send(false);
     }
     connection.end;
 });
