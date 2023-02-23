@@ -80,6 +80,7 @@ const changePicture = multer({storage: savePicture});
 router.post('/user',(req,res)=>{
     //console.log(req.body);
     //const {emailxUsuariox, clavexUsuariox} = req.body;
+    console.log("entra");
     const emailxUsuariox = req.body.email;
     const clavexUsuariox = req.body.password;
     var estado = [{"estado":false, "message":"El usuario no existe"}];
@@ -334,7 +335,85 @@ router.post("/updateDatas",actualizar.single("documeProyecto"),(req,res)=>{
     });
     
     connection.end;
-})  
+});
+
+router.delete("/deleteUser",(req,res)=>{
+    console.log("entra");
+    const connection = mysqlConnection;
+    const {emailxUsuariox,codigoPerfilxx,codigoBusqueda} = req.body;
+    console.log(req.body);
+    var estado = [{"estado":false, "message":"Error de Consulta"}];
+    estado = estado[0];
+    if(codigoPerfilxx && emailxUsuariox){
+        connection.query("START TRANSACTION");
+        if(codigoPerfilxx==2){
+            connection.query("DELETE FROM tbl_docentex WHERE codigoDocentex=?",[codigoBusqueda],(error,result)=>{
+                if(error){
+                    connection.query("ROLLBACK");
+                    estado['message']="Error, al eliminar el usuario";
+                    res.status(200).send(estado);
+                }else{
+                    connection.query("DELETE FROM tbl_usuarios WHERE emailxUsuariox=?",[emailxUsuariox],(error,result)=>{
+                        if(error){
+                            connection.query("ROLLBACK");
+                            estado['message']="Error, al eliminar el usuario";
+                            res.status(200).send(estado);
+                        }else{
+                            estado['estado']=true;
+                            connection.query("COMMIT");
+                            estado['message']="Usuario eliminado correctamente";
+                            res.status(200).send(estado);
+                        }
+                    });
+                }
+            });
+        }else if(codigoPerfilxx==3){
+            connection.query("DELETE FROM tbl_estudnte WHERE codigoEstudnte=?",[codigoBusqueda],(error,result)=>{
+                if(error){
+                    connection.query("ROLLBACK");
+                    estado['message']="Error, al eliminar el usuario";
+                    res.status(200).send(estado);
+                }else{
+                    connection.query("DELETE FROM tbl_usuarios WHERE emailxUsuariox=?",[emailxUsuariox],(error,result)=>{
+                        if(error){
+                            connection.query("ROLLBACK");
+                            estado['message']="Error, al eliminar el usuario";
+                            res.status(200).send(estado);
+                        }else{
+                            connection.query("DELETE FROM tbl_grupoxxx WHERE codigoEstudnte=?",[codigoBusqueda],(error,result)=>{
+                                if(error){
+                                    connection.query("ROLLBACK");
+                                    estado['message']="Error, al eliminar el usuario";
+                                    res.status(200).send(estado);
+                                }else{
+                                    connection.query("DELETE FROM tbl_proyecto WHERE codigoEstudnte=?",[codigoBusqueda],(error,result)=>{
+                                        if(error){
+                                            connection.query("ROLLBACK");
+                                            estado['message']="Error, al eliminar el usuario";
+                                            res.status(200).send(estado);
+                                        }else{
+                                            estado['estado']=true;
+                                            connection.query("COMMIT");
+                                            estado['message']="Usuario eliminado correctamente";
+                                            res.status(200).send(estado);
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }else{
+            connection.query("ROLLBACK");
+            estado['message']="Error, no se encontró el usuario";
+            res.status(200).send(estado);
+        }
+    }else{
+        res.status(500).send(false);
+    }
+    connection.end;
+})
  
 router.post("/registerTeacher",(req,res)=>{
     
@@ -437,6 +516,7 @@ router.post("/changePicture",changePicture.single("filePicture"),(req,res)=>{
 })
 
 router.get("/getAllUsers/1/all",(req,res)=>{
+    //console.log("entra");
     const connection = mysqlConnection;
     const {f_codigoPerfilxx,f_codigoEtapaxxx,f_buscador} = req.query;
     
@@ -460,16 +540,16 @@ router.get("/getAllUsers/1/all",(req,res)=>{
         }
 
         let filtroDocentex = "SELECT UPPER(a.nombreDocentex) as nombreBusqueda, UPPER(a.apelliDocentex) as apelliBusqueda, a.codigoEtapaxxx, "+
-        "a.generoDocentex as generoBusqueda, a.fechaxNacimien, a.profesDocentex as profesBusqueda, "+
-        "a.numeroCelularx, a.emailxUsuariox, a.codigoDocentex as codigoBusqueda, b.nombreUsuariox, 'Docente' as codigoPerfilxx "+
+        "a.generoDocentex as generoBusqueda, a.fechaxNacimien, a.profesDocentex as profesBusqueda, a.direccDocentex as direccBusqueda,  b.clavexUsuariox, "+
+        "a.numeroCelularx, a.emailxUsuariox, a.codigoDocentex as codigoBusqueda, b.nombreUsuariox, 'Docente' as codigoPerfilxx , b.codigoPerfilxx as perfilUsuariox "+
         "FROM tbl_docentex a LEFT JOIN tbl_usuarios b ON a.emailxUsuariox = b.emailxUsuariox "+
         "WHERE 1 = 1 "+condicEtapad + consultaBuscadord;
         let filtroEstudnte = "SELECT UPPER(a.nombreEstudnte) as nombreBusqueda, UPPER(a.apelliEstudnte) as apelliBusqueda, IF(c.codigoEtapaxxx IS NULL,'N/A', c.codigoEtapaxxx) codigoEtapaxxx, "+
-        "a.generoEstudnte as generoBusqueda, a.fechaxNacimien, a.profesEstudnte as profesBusqueda, "+
-        "a.numeroCelularx, a.emailxUsuariox, a.codigoEstudnte as codigoBusqueda, b.nombreUsuariox, 'Estudiante' as codigoPerfilxx "+
+        "a.generoEstudnte as generoBusqueda, a.fechaxNacimien, a.profesEstudnte as profesBusqueda, a.direccEstudnte as direccBusqueda, b.clavexUsuariox, "+
+        "a.numeroCelularx, a.emailxUsuariox, a.codigoEstudnte as codigoBusqueda, b.nombreUsuariox, 'Estudiante' as codigoPerfilxx, b.codigoPerfilxx as perfilUsuariox "+
         "FROM tbl_estudnte a LEFT JOIN tbl_usuarios b ON a.emailxUsuariox = b.emailxUsuariox "+
-        " LEFT JOIN tbl_proyecto c ON a.codigoEstudnte = c.codigoEstudnte"+
-        "WHERE 1 = 1 "+condicEtapae+ consultaBuscadore+
+        " LEFT JOIN tbl_proyecto c ON a.codigoEstudnte = c.codigoEstudnte "+
+        " WHERE 1 = 1 "+condicEtapae+ consultaBuscadore+
         " ORDER BY codigoBusqueda "+f_tipoxOrdenxxx;
         connection.query(
             filtroDocentex+" UNION "+filtroEstudnte
@@ -477,7 +557,7 @@ router.get("/getAllUsers/1/all",(req,res)=>{
                 if(result){
                     res.status(200).send(result);
                 }else{
-                    res.status(200).send(false);
+                    res.status(200).send(error);
                 }
             });
     }
@@ -510,8 +590,8 @@ router.get("/getAllUsers/1/all",(req,res)=>{
         }
 
         let filtroBusqueda = "SELECT UPPER(a.nombre"+colum+") as nombreBusqueda, UPPER(a.apelli"+colum+") as apelliBusqueda, "+colef+" as codigoEtapaxxx, "+
-        "a.genero"+colum+" as generoBusqueda, a.fechaxNacimien, a.profes"+colum+" as profesBusqueda, "+
-        "a.numeroCelularx, a.emailxUsuariox, a.codigo"+colum+" as codigoBusqueda, b.nombreUsuariox, '"+tipou+"' as codigoPerfilxx "+
+        "a.genero"+colum+" as generoBusqueda, a.fechaxNacimien, a.profes"+colum+" as profesBusqueda, a.direcc"+colum+" as direccBusqueda,  b.clavexUsuariox, "+
+        "a.numeroCelularx, a.emailxUsuariox, a.codigo"+colum+" as codigoBusqueda, b.nombreUsuariox, '"+tipou+"' as codigoPerfilxx, b.codigoPerfilxx as perfilUsuariox "+
         "FROM tbl_"+tabla+" a LEFT JOIN tbl_usuarios b ON a.emailxUsuariox = b.emailxUsuariox "+leftj+
         " WHERE 1 = 1 "+conde+consultaBuscador+
         " ORDER BY codigoBusqueda "+f_tipoxOrdenxxx;
@@ -566,7 +646,7 @@ router.put("/updateNotify/:codigoHistnoti",(req,res)=>{
                 connection.query("COMMIT");
                 res.status(200).send(true);
             }
-        })
+        }) 
     }
     else{
         res.status(500).send(false);

@@ -114,6 +114,8 @@ app.post('/register',(req,res)=>{
 app.use('/api/login',require('./routes/login'));
 app.use('/api/proyecto',require('./routes/proyecto')); 
 app.use('/api/asesorias',require('./routes/asesorias')); 
+app.use('/api/events',require('./routes/eventos')); 
+app.use('/api/offers',require('./routes/ofertas')); 
 
 
 

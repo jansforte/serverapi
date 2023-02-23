@@ -1,9 +1,16 @@
 const mysql = require('mysql');
 
-const credencials = {
+/*const credencials = {
     host:'remotemysql.com',
     user:'VIbrimMy5a',
     password:'WfpsC3j6At',
+    database:'VIbrimMy5a',
+    port: '3306'
+}*/
+const credencials = {
+    host:'localhost',
+    user:'root',
+    password:'',
     database:'VIbrimMy5a',
     port: '3306'
 }
