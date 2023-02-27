@@ -135,11 +135,12 @@ router.post('/userEmail',(req,res)=>{
             }
             else if(result[0]){
                 connection.query("UPDATE tbl_usuarios SET tokenxUsuariox=?,fechaxIngresox=NOW() WHERE emailxUsuariox=?",[tokenxUsuariox,emailxUsuariox]);
-                const token = jwt.sign(
+                /*const token = jwt.sign(
                     {email: result[0][emailxUsuariox]},
                     TOKEN_KEY,
                     {expiresIn: '2h'}
-                   );
+                   );*/
+                const token = tokenxUsuariox;
                 let datos = {...result,token};
                 datos[0]['clavexUsuariox'] = datos[0]['clavexUsuariox']='********';
                 estado['estado']=1;
