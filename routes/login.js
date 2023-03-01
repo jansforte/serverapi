@@ -521,7 +521,8 @@ router.get("/getAllUsers/1/all",(req,res)=>{
     const connection = mysqlConnection;
     const {f_codigoPerfilxx,f_codigoEtapaxxx,f_buscador} = req.query;
     
-    let f_tipoxOrdenxxx = req.params.tipoxOrdenxxx ? req.params.tipoxOrdenxxx : 'ASC'; 
+    let f_tipoxOrdenxxx = req.query.tipoxOrdenxxx==2 ? 'DESC' : 'ASC'; 
+    
     if(!f_codigoPerfilxx){
     //nombreUsuario, tipoUsuario, etapa
         let condicEtapad = "";
