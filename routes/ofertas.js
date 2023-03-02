@@ -194,24 +194,25 @@ router.get("/getHorarios/:codigoCursoxxx",(req,res)=>{
     connection.end;
 });
 
-router.delete("/:codigoEventoxx",(req,res)=>{
+router.delete("/deleteOffer",(req,res)=>{
     var connection = mysqlConnection;
-    var codigoEventoxx = req.params.codigoEventoxx;
-    console.log(codigoEventoxx);
+    var codigoCursoxxx = req.body.codigoCursoxxx;
+    
+    console.log("entra");
     var estado = [{"estado":false, "message":"No se pudo Realizar el Registro"}];
     estado = estado[0];
     connection.query("START TRANSACTION");
-    connection.query("DELETE FROM tbl_eventoxx WHERE codigoEventoxx=?",[codigoEventoxx],(error,result)=>{
+    connection.query("DELETE FROM tbl_cursoxxx WHERE codigoCursoxxx=? ",[codigoCursoxxx],(error,result)=>{
         if(error){
-            estado['message']=error;
+            estado['message']="Error al eliminar la oferta";
             console.log(error);
             connection.query("ROLLBACK");
-            res.status(500).send(estado);
+            res.status(200).send(estado);
         }
         else if(result){
-            estado['message']=result;
+            estado['message']="Oferta eliminada correctamente";
             estado['estado']=true;
-            console.log(result);
+           // console.log(result);
             connection.query("COMMIT");
             res.status(200).send(estado);
         }
