@@ -89,6 +89,24 @@ router.get("/getAll",(req,res)=>{
     connection.end; 
 });
 
+router.get("/getIndex",(req,res)=>{
+    var connection = mysqlConnection;
+    const fecha = new Date();
+    const yearActual = fecha.getFullYear();
+    const mesActual = fecha.getMonth() + 1; 
+    connection.query("SELECT * FROM tbl_eventoxx WHERE MONTH(fechaxEventoxx) >= ? AND YEAR(fechaxEventoxx) >= ? ORDER BY 1 DESC",[mesActual,yearActual],(error,result)=>{
+        if(error){
+          //  console.log(error);
+            res.status(500).send(error);
+        }
+        if(result){
+            
+            res.status(200).send(result);
+        }
+    });
+    connection.end; 
+});
+
 router.delete("/:codigoEventoxx",(req,res)=>{
     var connection = mysqlConnection;
     var codigoEventoxx = req.params.codigoEventoxx;
@@ -169,7 +187,7 @@ router.put("/:codigoEventoxx",changePicture.single("archivEventoxx"),(req,res)=>
                 estado['message']=result;
                 estado['estado']=true;
                 console.log(result);
-                connection.query("ROLLBACK");
+                connection.query("COMMIT");
                 res.status(200).send(estado);
             }
             

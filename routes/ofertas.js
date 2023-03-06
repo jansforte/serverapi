@@ -75,10 +75,10 @@ router.post("/register",changePicture.single("archivEventoxx"),(req,res)=>{
                 }else{
                     console.log(1);
                     console.log(result);
-                    estado['message']='El Cambio se realizó correctamente';
+                    estado['message']='El Registro se realizó correctamente';
                     estado['estado']=true;
 
-                    connection.query("ROLLBACK");
+                    connection.query("COMMIT");
                     console.log(estado);
                     res.status(200).send(estado);
 
@@ -101,7 +101,7 @@ router.post("/register",changePicture.single("archivEventoxx"),(req,res)=>{
                                 }else{
                                 //    console.log('a'+i);
                                //     console.log(result);
-                               connection.query("ROLLBACK");
+                               connection.query("COMMIT");
                                     estado['message']='Se insertó el horario correctamente';
                                     estado['estado']=true;
                                 }
@@ -194,11 +194,58 @@ router.get("/getHorarios/:codigoCursoxxx",(req,res)=>{
     connection.end;
 });
 
+router.put("/update/:codigoCursoxxx",changePicture.single("archivEventoxx"),(req,res)=>{
+    var connection = mysqlConnection;
+    console.log("entraUpdate");
+    var codigoCursoxxx = req.params.codigoCursoxxx;
+    var {emailxUsuariox, nombreCursoxxx, mFormaCursoxxx,
+         fIInscCursoxxx, fFInscCursoxxx, fIAcadCursoxxx,
+        fFAcadCursoxxx,  descriCursoxxx, cantidHorariox} = req.body;
+    
+    var estado = [{"estado":true, "message":"Los cambios se realizaron satisfactoriamente"}];
+    connection.query("START TRANSACTION");
+    connection.query(
+        "UPDATE tbl_cursoxxx SET "+
+        "nombreCursoxxx=?, mFormaCursoxxx=?, "+
+        "fIInscCursoxxx=?, fFInscCursoxxx=?, "+
+        "fIAcadCursoxxx=?, fFAcadCursoxxx=?,"+
+        "descriCursoxxx=?"+
+        "WHERE codigoCursoxxx = ? ",
+        [nombreCursoxxx, mFormaCursoxxx,
+        fIInscCursoxxx, fFInscCursoxxx, 
+        fIAcadCursoxxx, fFAcadCursoxxx, 
+        descriCursoxxx, codigoCursoxxx] 
+    );
+
+    let keys = Object.keys(req.body);
+    keys.map((values)=>{
+        let v = Number(values.replaceAll(/\D/g,''));
+        if(v>cantidHorariox){
+            cantidHorariox=v;
+        }
+    });
+
+    connection.query("DELETE FROM tbl_curshora WHERE codigoCursoxxx=? ",[codigoCursoxxx]);
+    for(let i = 1; i<=cantidHorariox; i++){
+        if(req.body['dia'+i]){
+            connection.query(
+                "INSERT INTO tbl_curshora("+
+                    "codigoCursoxxx, diaxxxCurshora, "+
+                    "horainHorariox, horafnHorariox) "+
+                    "VALUES (?,?,?,?)",
+                    [codigoCursoxxx,req.body['dia'+i],
+                    req.body['horaInHorariox'+i],req.body['horaFnHorariox'+i]])
+        }
+    }
+    connection.query("COMMIT");
+    res.status(200).send(estado);
+    connection.end;
+});
+
 router.delete("/deleteOffer",(req,res)=>{
     var connection = mysqlConnection;
     var codigoCursoxxx = req.body.codigoCursoxxx;
     
-    console.log("entra");
     var estado = [{"estado":false, "message":"No se pudo Realizar el Registro"}];
     estado = estado[0];
     connection.query("START TRANSACTION");
@@ -210,6 +257,7 @@ router.delete("/deleteOffer",(req,res)=>{
             res.status(200).send(estado);
         }
         else if(result){
+            connection.query("DELETE FROM tbl_curshora WHERE codigoCursoxxx=? ",[codigoCursoxxx]);
             estado['message']="Oferta eliminada correctamente";
             estado['estado']=true;
            // console.log(result);
@@ -220,69 +268,6 @@ router.delete("/deleteOffer",(req,res)=>{
     connection.end; 
 });   
 
-router.put("/:codigoEventoxx",(req,res)=>{
-    var connection = mysqlConnection;
-    var codigoEventoxx = req.params.codigoEventoxx;
-    var {emailxUsuariox} = req.body;
-    var  nombreEventoxx = req.body.nombreEventoxx;
-    var  fechaxEventoxx = req.body.fechaxEventoxx;
-    var  horainEventoxx = req.body.horainEventoxx;
-    var  horafnEventoxx = req.body.horafnEventoxx;
-    var  imagenEventoxx = req.body.nombreArchivox;
-    var  descriEventoxx = req.body.descriEventoxx;
-    
-    const update = [nombreEventoxx,descriEventoxx,
-                    fechaxEventoxx,horainEventoxx,horafnEventoxx, emailxUsuariox,codigoEventoxx];
-    const updatePic = [imagenEventoxx,codigoEventoxx];
-    console.log(req.params);
-    console.log(req.body);
-    var estado = [{"estado":false, "message":"No se pudo Realizar la actualización"}];
-    estado = estado[0];
-    connection.query("START TRANSACTION");
-    connection.query("UPDATE tbl_eventoxx SET nombreEventoxx=?,"+
-                    "descriEventoxx=?,fechaxEventoxx=?,"+
-                    "horainEventoxx=?,horafnEventoxx=?,numeroEstadoxx=1,"+
-                    "usuariModifica=?,fechaxModifica = NOW() "+
-                    "WHERE codigoEventoxx=? ",[nombreEventoxx,descriEventoxx,
-                        fechaxEventoxx,horainEventoxx,horafnEventoxx, emailxUsuariox,codigoEventoxx],(error,result)=>{
-        if(error){
-            estado['message']=error;
-            console.log(error);
-            connection.query("ROLLBACK");
-            res.status(500).send(estado);
-        }
-        else if(result){
-            if(imagenEventoxx){
-                connection.query("UPDATE tbl_eventoxx SET imagenEventoxx=? WHERE codigoEventoxx=?",
-                [imagenEventoxx,codigoEventoxx],(error,result)=>{
-                    if(error){
-                        estado['message']=error;
-                        console.log(error);
-                        connection.query("ROLLBACK");
-                        res.status(500).send(estado);
-                    }else if(result){
-                        console.log("con");
-                        estado['message']=result;
-                        estado['estado']=true;
-                        console.log(result);
-                        connection.query("COMMIT");
-                        res.status(200).send(estado);
-                    }
-                })
-            }
-            else{
-                console.log("sin");
-                estado['message']=result;
-                estado['estado']=true;
-                console.log(result);
-                connection.query("ROLLBACK");
-                res.status(200).send(estado);
-            }
-            
-        }
-    });
-    connection.end; 
-});
 
 /*
 para verificar el token lo mandamos en el tercer parametro de la consulta que se haga
