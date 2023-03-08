@@ -107,6 +107,44 @@ router.get("/getIndex",(req,res)=>{
     connection.end; 
 });
 
+router.get("/getCalendar",(req,res)=>{
+    var connection = mysqlConnection;
+    const fecha = new Date();
+    const yearActual = fecha.getFullYear();
+    const mesActual = fecha.getMonth() + 1; 
+    fecha.setMonth(mesActual+2);
+    let dia = fecha.getDate()<10 ? '0'+fecha.getDate() : fecha.getDate();
+    let mes = (fecha.getMonth()+1)<10 ? '0'+(fecha.getMonth()+1): (fecha.getMonth()+1);
+    const fechaFutura = fecha.getFullYear()+'-'+mes+'-'+dia;
+
+    connection.query("SELECT *, YEAR(fechaxEventoxx) as yearEvento, DAY(fechaxEventoxx) as dia_mes,"+
+    "CASE MONTH(fechaxEventoxx) "+
+    " WHEN 1 THEN 'Ene'"+
+    " WHEN 2 THEN 'Feb'"+
+    " WHEN 3 THEN 'Mar'"+
+    " WHEN 4 THEN 'Abr'"+
+    " WHEN 5 THEN 'May'"+
+    " WHEN 6 THEN 'Jun'"+
+    " WHEN 7 THEN 'Jul'"+
+    " WHEN 8 THEN 'Ago'"+
+    " WHEN 9 THEN 'Sep'"+
+    " WHEN 10 THEN 'Oct'"+
+    " WHEN 11 THEN 'Nov'"+
+    " ELSE 'Dic' END nombre_mes"+
+
+    " FROM tbl_eventoxx WHERE MONTH(fechaxEventoxx) >= ? AND YEAR(fechaxEventoxx) >= ? AND fechaxEventoxx < ? ORDER BY fechaxEventoxx ASC",[mesActual,yearActual,fechaFutura],(error,result)=>{
+        if(error){
+          //  console.log(error);
+            res.status(500).send(error);
+        }
+        if(result){
+            
+            res.status(200).send(result);
+        }
+    });
+    connection.end; 
+});
+
 router.delete("/:codigoEventoxx",(req,res)=>{
     var connection = mysqlConnection;
     var codigoEventoxx = req.params.codigoEventoxx;
