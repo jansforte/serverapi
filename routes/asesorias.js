@@ -86,13 +86,19 @@ router.post('/register',(req,res)=>{
 router.get("/getSchedule/:emailxUsuariox/:profile",(req,res)=>{
     let connection = mysqlConnection; 
     const {emailxUsuariox,profile} = req.params;
-    var estado = [{"estado":false, "message":"Error al consultar en la Base de Datos, intente más tarde"}];
+    let estado = [{"estado":false, "message":"Error al consultar en la Base de Datos, intente más tarde"}];
     estado = estado[0];
-    if(atob(profile,"base64")==3){
+    if(atob(profile,"base64")==3 || atob(profile,"base64")==2){
         
         search="codigoEstudnte";
-        connection.query("SELECT a.* FROM tbl_estudisp a "
-        +" LEFT JOIN tbl_estudnte b ON a.codigoEstudnte = b.codigoEstudnte WHERE emailxUsuariox = ?",[emailxUsuariox],(error,result)=>{
+        let consulta=
+        'CONCAT(COALESCE(lunesxHorainic,"--:--")," a ",COALESCE(lunesxHorafinx,"--:--")) as lunes, '+
+        'CONCAT(COALESCE(martesHorainic,"--:--")," a ",COALESCE(martesHorafinx,"--:--")) as martes, '+
+        'CONCAT(COALESCE(miercoHorainic,"--:--")," a ",COALESCE(miercoHorafinx,"--:--")) as miercoles, '+
+        'CONCAT(COALESCE(juevesHorainic,"--:--")," a ",COALESCE(juevesHorafinx,"--:--")) as jueves, '+
+        'CONCAT(COALESCE(vierneHorafinx,"--:--")," a ",COALESCE(vierneHorafinx,"--:--")) as viernes ';
+        connection.query("SELECT "+consulta+" FROM tbl_estudisp a "
+        +" LEFT JOIN tbl_estudnte b ON a.codigoEstudnte = b.codigoEstudnte WHERE emailxUsuariox = ? LIMIT 1",[emailxUsuariox],(error,result)=>{
             if(error){
                 estado['message']=error;
                 res.status(500).send(estado);
