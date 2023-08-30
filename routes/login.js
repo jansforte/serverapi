@@ -613,7 +613,7 @@ router.get("/getNotify/profile/:emailxUsuariox/:profile",(req,res)=>{
     const {emailxUsuariox,profile} = req.params;
     if(atob(profile,'base64')==2){
         connection.query("SELECT a.* FROM tbl_histnoti a LEFT JOIN tbl_docentex b ON a.codigoUsuariox = b.codigoDocentex "+
-        " WHERE b.emailxUsuariox = ? ",[emailxUsuariox],(error,result)=>{
+        " WHERE b.emailxUsuariox = ? AND a.estadoNotifica != 1 ORDER BY a.fechaxCreacion ASC",[emailxUsuariox],(error,result)=>{
             if(result){
                 res.status(200).send(result);
             }else{
@@ -644,9 +644,11 @@ router.put("/updateNotify/:codigoHistnoti",(req,res)=>{
             if(error){
                 connection.query("ROLLBACK");
                 res.status(200).send(false);
+                console.log(error);
             }else{
                 connection.query("COMMIT");
                 res.status(200).send(true);
+                console.log(result);
             }
         }) 
     }
@@ -654,6 +656,7 @@ router.put("/updateNotify/:codigoHistnoti",(req,res)=>{
         res.status(500).send(false);
     }
     connection.end;
+    
 });
 /*
 para verificar el token lo mandamos en el tercer parametro de la consulta que se haga

@@ -8,9 +8,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({
     extended: true
-  }));
+  })); 
 
 app.set("json spaces",2);
+app.use('/plantilla/asistencia', (req,res)=>{
+    res.download('./plantilla/asistencia_evento.xlsx');
+}); 
 app.use('/files', express.static('files'));
 app.use('/files', express.static('public'));
 
@@ -21,7 +24,7 @@ app.use('/files', express.static('public'));
     database:'crepids'
 }*/
 
-
+ 
 app.get('/',(req, res)=>{
     res.send('hola desde tu primera ruta de la api')
 });

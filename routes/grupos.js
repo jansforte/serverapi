@@ -117,30 +117,56 @@ router.put("/updateItem/:codigoGrupstud",(req,res)=>{
     let connection = mysqlConnection;
     let codigoGrupstud = req.params.codigoGrupstud;
     let codigoGrupoxxx = req.body.codigoGrupoxxx;
+    let emailxUsuariox = req.body.emailxEstudnte;
 
     console.log(req.params);
     console.log(req.body);
     let estado = [{"estado":false, "message":"No se pudo Realizar la actualización"}];
     estado = estado[0];
     connection.query("START TRANSACTION");
-    connection.query("UPDATE tbl_grupstud SET codigoGrupoxxx=?"+
-                    "WHERE codigoGrupstud=? ",[codigoGrupoxxx,codigoGrupstud],(error,result)=>{
-        if(error){
-            estado['message']="Error al cambiar el estudiante de Grupo";
-            console.log(error);
-            connection.query("ROLLBACK");
-            res.status(500).send(estado);
-        }
-        else if(result){
-            console.log("sin");
-            estado['message']="El cambio se realizó exitosamente";
-            estado['estado']=true;
-            console.log(result);
-            connection.query("COMMIT");
-            res.status(200).send(estado);
-        }
-    });
+    if(codigoGrupstud!=="undefined"){
+        connection.query("UPDATE tbl_grupstud SET codigoGrupoxxx=?"+
+                        "WHERE codigoGrupstud=? ",[codigoGrupoxxx,codigoGrupstud],(error,result)=>{
+            if(error){
+                estado['message']="Error al cambiar el estudiante de Grupo";
+                console.log(error);
+                connection.query("ROLLBACK");
+                res.status(500).send(estado);
+            }
+            else if(result){
+                console.log("sin");
+                estado['message']="El cambio se realizó exitosamente";
+                estado['estado']=true;
+                console.log(result);
+                connection.query("COMMIT");
+                res.status(200).send(estado);
+            }
+        });
+    }else{
+        connection.query("SELECT codigoEstudnte FROM tbl_estudnte WHERE emailxUsuariox=?",[emailxUsuariox],(error,result)=>{
+            if(result){
+                connection.query("INSERT INTO tbl_grupstud (codigoGrupoxxx,codigoEstudnte) VALUES(?,?)",[codigoGrupoxxx,result[0]['codigoEstudnte']]
+                ,(e,r)=>{
+                    if(e){
+                        estado['message']="Error al cambiar el estudiante de Grupo";
+                        console.log(e);
+                        connection.query("ROLLBACK");
+                        res.status(500).send(estado);
+                    }
+                    else if(r){
+                        console.log("sin");
+                        estado['message']="El cambio se realizó exitosamente";
+                        estado['estado']=true;
+                        console.log(r);
+                        connection.query("COMMIT");
+                        res.status(200).send(estado);
+                    }
+                })
+            }
+        })
+    }
     connection.end; 
+    console.log("llega"); 
 });
 
 /*

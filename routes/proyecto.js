@@ -53,7 +53,7 @@ const almacen = multer.diskStorage({
  
 const actualizar = multer({storage: almacen});
 
-router.get('/:email',(req,res)=>{
+/*router.get('/:email',(req,res)=>{
     var connection = mysqlConnection;
     var {email} = req.params;
     connection.query("SELECT a.* FROM tbl_proyecto a, tbl_estudnte b WHERE b.emailxUsuariox = ? AND a.codigoEstudnte = b.codigoEstudnte",[email],(error, result)=>{
@@ -64,7 +64,7 @@ router.get('/:email',(req,res)=>{
         }
     );
     connection.end;
-});
+});*/
 
 router.get("/exist/doc/:emailxUsuariox",(req,res)=>{
     var connection = mysqlConnection;
@@ -105,6 +105,7 @@ router.get('/list/all',(req,res)=>{
         }
             
     });
+    connection.end;
 })
  
 router.get('/list/:search',(req,res)=>{
@@ -127,6 +128,7 @@ router.get('/list/:search',(req,res)=>{
         else
             res.status(200).send(result);
     });  
+    connection.end;
 }) 
 
 router.get('/single/:search',(req,res)=>{
@@ -145,6 +147,7 @@ router.get('/single/:search',(req,res)=>{
         else
             res.status(200).send(result);
     });  
+    connection.end;
 }) 
 
 router.post('/register',upload.single("documeProyecto"),(req,res)=>{
@@ -329,7 +332,62 @@ router.post('/updateProyect',actualizar.single("documeProyecto"),(req,res)=>{
     connection.end;
     console.log("entra proyecto");
 });
- 
+
+router.get('/student/listasks/:emailxEstudnte',(req,res)=>{
+    const connection = mysqlConnection;
+    let {emailxEstudnte} = req.params;
+    
+    emailxEstudnte = atob(emailxEstudnte);
+    connection.query("SELECT b.* "+
+    " FROM tbl_estudnte b"+
+    " WHERE b.emailxUsuariox = ? ",
+    [emailxEstudnte],(error,result)=>{
+        if(error)
+            res.status(500).send(error); 
+        else{
+            console.log(result);
+            res.status(200).send(result);
+        }
+    });  
+    connection.end;
+})
+
+router.post('/student/register',(req,res)=>{
+    const connection = mysqlConnection;
+    console.log("entra");
+    const codigoProyecto = req.body.codigoProyecto;
+    const nombreTareaxxx = req.body.nombreTareaxxx;
+    const descriTareaxxx = req.body.descriTareaxxx;
+    const fechaxTareaxxx = req.body.fechaxTareaxxx;
+    const usuariCreacion = req.body.usuariCreacion;
+
+    let insertTareaxxx =[codigoProyecto, nombreTareaxxx,
+        descriTareaxxx, fechaxTareaxxx,usuariCreacion];
+        console.log(insertTareaxxx);
+    let estado = [{"estado":false, "message":"Error al Registrar en la Base de Datos, intente más tarde"}];
+    estado = estado[0];
+    
+    connection.query("START TRANSACTION");
+    connection.query(
+    "INSERT INTO tbl_tareaxxx(\
+            codigoProyecto, nombreTareaxxx,\
+            descriTareaxxx, fechaxTareaxxx, \
+            usuariCreacion, fechaxCreacion) VALUES (?, NOW())",[insertTareaxxx],(error,results,fields)=>{
+                console.log(fields);
+                console.table(results);
+                if(error){
+                    estado['message']=error;
+                    connection.query("ROLLBACK");
+                    res.status(500).send(estado);
+                }else{
+                    estado['estado']=true;
+                    connection.query("COMMIT");
+                    estado['message']="Tarea Registrada Correctamente";  
+                    res.status(200).send(estado);
+                }
+            })
+    connection.end;
+})
 /*
 para verificar el token lo mandamos en el tercer parametro de la consulta que se haga
 ejemplo: router.get('/:emailxUsuariox/proyecto',verifytoken,(req,res)=>{}) se manda por 
