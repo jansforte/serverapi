@@ -53,6 +53,52 @@ const almacen = multer.diskStorage({
  
 const actualizar = multer({storage: almacen});
 
+const saveTarea = multer.diskStorage({
+    destination: function(req,file,cb){
+        if(file){
+            DIRECTORIO ='./files/'+req.body.emailxEstudnte
+            let Tarea = DIRECTORIO +'/tarea';
+            let codigo = Tarea+'/'+req.body.codigoTareaxxx;
+            if(fs.existsSync(DIRECTORIO)){
+                console.log("existe");
+            }else{
+                fs.mkdirSync(DIRECTORIO,true);
+                fs.chmod(DIRECTORIO, 0o777, (err) => {
+                    if (err) throw err;
+                    console.log('The permissions for file "my_file.txt" have been changed!');
+                });
+            }
+
+            if(fs.existsSync(Tarea)){
+                console.log("existe");
+            }else{
+                fs.mkdirSync(Tarea,true);
+                fs.chmod(Tarea, 0o777, (err) => {
+                    if (err) throw err;
+                    console.log('The permissions for file "my_file.txt" have been changed!');
+                });
+            }
+            
+            if(fs.existsSync(codigo)){
+                console.log("existe");
+            }else{
+                fs.mkdirSync(codigo,true);
+                fs.chmod(codigo, 0o777, (err) => {
+                    if (err) throw err;
+                    console.log('The permissions for file "my_file.txt" have been changed!');
+                });
+            }
+            cb(null,codigo);
+        }
+    }, 
+    filename: function(req,file,cb){
+        if(file){
+            cb(null,file.originalname);
+        }
+    }
+});
+
+const archivoTarea = multer({storage: saveTarea});
 /*router.get('/:email',(req,res)=>{
     var connection = mysqlConnection;
     var {email} = req.params;
@@ -333,26 +379,27 @@ router.post('/updateProyect',actualizar.single("documeProyecto"),(req,res)=>{
     console.log("entra proyecto");
 });
 
-router.get('/student/listasks/:emailxEstudnte',(req,res)=>{
+router.get('/homework/listasks/:codigoProyecto',(req,res)=>{
     const connection = mysqlConnection;
-    let {emailxEstudnte} = req.params;
-    
-    emailxEstudnte = atob(emailxEstudnte);
-    connection.query("SELECT b.* "+
-    " FROM tbl_estudnte b"+
-    " WHERE b.emailxUsuariox = ? ",
-    [emailxEstudnte],(error,result)=>{
-        if(error)
+    let {codigoProyecto} = req.params;
+    codigoProyecto = atob(codigoProyecto);
+    connection.query("SELECT b.*, IF(b.usuariModifica IS NULL, a.nombreUsuariox,c.nombreUsuariox) as nombreUsuariox, d.nombreEstatare "+
+    " FROM tbl_tareaxxx b LEFT JOIN tbl_usuarios a ON a.emailxUsuariox=b.usuariCreacion "+
+    " LEFT JOIN tbl_usuarios c ON c.emailxUsuariox=b.usuariModifica "+
+    " LEFT JOIN tbl_estatare d ON b.numeroEstadoxx = d.codigoEstatare " +
+    " WHERE b.numeroEstadoxx!='0' AND b.codigoProyecto = ? ORDER BY b.fechaxTareaxxx DESC",
+    [codigoProyecto],(error,result)=>{
+        if(error){
             res.status(500).send(error); 
+        }
         else{
-            console.log(result);
             res.status(200).send(result);
         }
     });  
     connection.end;
-})
+});
 
-router.post('/student/register',(req,res)=>{
+router.post('/homework/register',(req,res)=>{
     const connection = mysqlConnection;
     console.log("entra");
     const codigoProyecto = req.body.codigoProyecto;
@@ -380,18 +427,200 @@ router.post('/student/register',(req,res)=>{
                     connection.query("ROLLBACK");
                     res.status(500).send(estado);
                 }else{
+                    console.log(results);
+                    let codigoTareaxxx = results.insertId;
+                    let observacion = "Se crea la tarea al estudiante";
+                    let numeroEstadoxx = "1";
+                    let archivAdjuntox = "";
+
+                    let insertHistorial =[codigoTareaxxx,observacion,numeroEstadoxx,archivAdjuntox,usuariCreacion];
+                    connection.query(
+                        "INSERT INTO tbl_histarea (\
+                            codigoTareaxxx, descriTareaxxx, numeroEstadoxx, \
+                            archivAdjuntox, usuariCreacion, fechaxCreacion)\
+                            VALUES(?,NOW())", [insertHistorial], (error, results)=>{
+                                if(error){
+                                    console.log(error);
+                                    estado['message']="Error al insertar";
+                                    banderaReg=false;
+                                }
+                            }
+                    );
                     estado['estado']=true;
                     connection.query("COMMIT");
                     estado['message']="Tarea Registrada Correctamente";  
                     res.status(200).send(estado);
                 }
+            });
+
+    connection.end;
+});
+ 
+router.put('/homework/update',(req,res)=>{
+    const connection = mysqlConnection;
+    console.log("entra");
+    const codigoTareaxxx = req.body.codigoTareaxxx;
+    const nombreTareaxxx = req.body.nombreTareaxxx;
+    const descriTareaxxx = req.body.descriTareaxxx;
+    const fechaxTareaxxx = req.body.fechaxTareaxxx;
+    const usuariCreacion = req.body.usuariCreacion;
+
+    let insertTareaxxx =[codigoTareaxxx, nombreTareaxxx,
+        descriTareaxxx, fechaxTareaxxx,usuariCreacion];
+        console.log(insertTareaxxx);
+    let estado = [{"estado":false, "message":"Error al Actualizar en la Base de Datos, intente más tarde"}];
+    estado = estado[0];
+    
+    connection.query("START TRANSACTION");
+    connection.query(
+    "UPDATE tbl_tareaxxx SET\
+            nombreTareaxxx=?,\
+            descriTareaxxx=?, fechaxTareaxxx=?, \
+            usuariModifica=?, fechaxModifica=NOW() WHERE codigoTareaxxx = ? ",
+            [nombreTareaxxx, descriTareaxxx, fechaxTareaxxx, usuariCreacion, codigoTareaxxx],
+            (error,results,fields)=>{
+                console.log(fields);
+                console.table(results);
+                if(error){
+                    estado['message']=error;
+                    console.log(error);
+                    connection.query("ROLLBACK");
+                    res.status(500).send(estado);
+                }else{
+                    estado['estado']=true;
+                    connection.query("COMMIT");
+                    estado['message']="Tarea Actualizada Correctamente";  
+                    res.status(200).send(estado);
+                }
             })
     connection.end;
-})
+});
+
+router.put('/homework/gestion',archivoTarea.single("documeTareaxxx"),(req,res)=>{
+    const connection = mysqlConnection;
+    
+    const codigoTareaxxx = req.body.codigoTareaxxx;
+    const descriTareaxxx = req.body.descriTareaxxx;
+    const numeroEstadoxx = req.body.numeroEstadoxx;
+    const archivAdjuntox = req.body.archivAdjuntox;
+    const usuariCreacion = req.body.usuariCreacion;
+
+    let insertHistorial =[codigoTareaxxx,descriTareaxxx,numeroEstadoxx,archivAdjuntox,usuariCreacion];
+        console.log(insertHistorial);
+    let estado = [{"estado":false, "message":"Error al Actualizar en la Base de Datos, intente más tarde"}];
+    estado = estado[0];
+    
+    let banderaReg = true;
+
+    connection.query("START TRANSACTION");
+    if(numeroEstadoxx==3){
+    connection.query(
+    "UPDATE tbl_tareaxxx SET\
+            numeroEstadoxx=?, \
+            usuariAprobado=?, fechaxAprobado=NOW() WHERE codigoTareaxxx = ? ",
+            [numeroEstadoxx, usuariCreacion,codigoTareaxxx],
+            (error,results)=>{
+                if(error){
+                    estado['message']="Error al actualizar";
+                    banderaReg=false;
+                }
+            });
+    }
+    else if(numeroEstadoxx==2){
+        connection.query(
+        "UPDATE tbl_tareaxxx SET\
+                numeroEstadoxx=?, \
+                usuariGestionx=?, fechaxGestionx=NOW() WHERE codigoTareaxxx = ? ",
+                [numeroEstadoxx, usuariCreacion,codigoTareaxxx],
+                (error,results)=>{
+                    if(error){
+                        estado['message']="Error al actualizar";
+                        banderaReg=false;
+                    }
+                });
+    }
+    else{
+        connection.query(
+            "UPDATE tbl_tareaxxx SET\
+                    numeroEstadoxx=?, \
+                    usuariGestionx='', fechaxGestionx=null WHERE codigoTareaxxx = ? ",
+                    [numeroEstadoxx, usuariCreacion,codigoTareaxxx],
+                    (error,results)=>{
+                        if(error){
+                            estado['message']="Error al actualizar";
+                            banderaReg=false;
+                        }
+                    }); 
+    }
+    connection.query(
+        "INSERT INTO tbl_histarea (\
+            codigoTareaxxx, descriTareaxxx, numeroEstadoxx, \
+            archivAdjuntox, usuariCreacion, fechaxCreacion)\
+            VALUES(?,NOW())", [insertHistorial], (error, results)=>{
+                if(error){
+                    estado['message']="Error al actualizar";
+                    banderaReg=false;
+                }
+            }
+    );
+
+    if(banderaReg){
+        connection.query("COMMIT");
+        estado['estado']=true;
+        estado['message']="Tarea Actualizada Correctamente";  
+        res.status(200).send(estado);
+    }
+    else{
+        connection.query("ROLLBACK");
+        res.status(200).send(estado);
+    }
+    connection.end;
+});
+
+router.get('/homework/liststate/:codigoPerfilxx',(req,res)=>{
+    const connection = mysqlConnection;
+    let {codigoPerfilxx} = req.params;
+    codigoPerfilxx = atob(codigoPerfilxx);
+    let sentencia=" SELECT codigoEstatare, UPPER(nombreEstatare) nombreEstatare FROM tbl_estatare ";
+    let condicion=" WHERE codigoEstatare IN(3,4) ";
+    if(codigoPerfilxx==3){
+        condicion=" WHERE codigoEstatare IN(1,2) ";
+    }
+    connection.query(sentencia+condicion,
+    (error,result)=>{
+        if(error)
+            res.status(500).send(error); 
+        else{
+            res.status(200).send(result);
+        }
+    });  
+    connection.end;
+});
+
+router.get('/homework/historial/:codigoTareaxxx',(req,res)=>{
+    const connection = mysqlConnection;
+    let {codigoTareaxxx} = req.params;
+    codigoTareaxxx = atob(codigoTareaxxx);
+    let sentencia=" SELECT a.*, b.nombreEstatare, c.nombreUsuariox FROM tbl_histarea a \
+                    LEFT JOIN tbl_estatare b ON a.numeroEstadoxx = b.codigoEstatare \
+                    LEFT JOIN tbl_usuarios c ON a.usuariCreacion = c.emailxUsuariox ";
+    let condicion=" WHERE a.codigoTareaxxx IN("+codigoTareaxxx+") ORDER BY fechaxCreacion DESC";
+
+    connection.query(sentencia+condicion,
+    (error,result)=>{
+        if(error)
+            res.status(500).send(error); 
+        else{
+            res.status(200).send(result);
+        }
+    });  
+
+    connection.end; 
+});
 /*
 para verificar el token lo mandamos en el tercer parametro de la consulta que se haga
 ejemplo: router.get('/:emailxUsuariox/proyecto',verifytoken,(req,res)=>{}) se manda por 
 beaser token en postman 
-*/   
+*/    
 
 module.exports = router;
