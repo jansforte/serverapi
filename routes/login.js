@@ -418,14 +418,15 @@ router.delete("/deleteUser",(req,res)=>{
  
 router.post("/registerTeacher",(req,res)=>{
     
-    const{codigoDocentex, codigoEtapax, nombreDocentex,
+    const{codigoDocentex, nombreDocentex,
         apelliDocentex, generoDocentex, fechaxNacimien,
         numeroCelularx, direccDocentex, emailxDocentex,
-        profesDocentex, emailxUsuariox, clavexUsuariox
+        profesDocentex, emailxUsuariox, clavexUsuariox, etapas
     } = req.body;
     
     const nombreUsuariox = nombreDocentex+" "+apelliDocentex;
-    
+    let codigoEtapax =etapas[0].value;
+
     var estado = [{"estado":2, "message":"No se pudo Realizar el Registro"}];
     estado = estado[0];
 
@@ -436,6 +437,10 @@ router.post("/registerTeacher",(req,res)=>{
             connection.query("ROLLBACK");
             res.status(500).send(estado);
         }else{
+            for(let etapa of etapas){
+                let docentap = [etapa.value,codigoDocentex];
+                connection.query("INSERT INTO tbl_docnetap(codigoEtapaxxx, codigoDocentex) VALUES (?)",[docentap]);
+            }
             connection.query("SELECT codigoAdminxxx FROM tbl_adminxxx WHERE emailxUsuariox = ?",[emailxUsuariox],(error,result2)=>{
                 if(error){
                     estado['message']=error;
@@ -471,6 +476,7 @@ router.post("/registerTeacher",(req,res)=>{
                                             connection.query("ROLLBACK",(error,result)=>{});
                                             res.status(500).send(estado);
                                         }else{
+                                            
                                             estado['estado']=true;
                                             connection.query("COMMIT",(error,result)=>{});
                                             estado['message']="Usuario Registrado Correctamente";
@@ -484,7 +490,7 @@ router.post("/registerTeacher",(req,res)=>{
             });
             
         }
-    });
+    }); 
     connection.end;
 })  
 

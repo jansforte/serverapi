@@ -543,14 +543,14 @@ router.put('/homework/gestion',archivoTarea.single("documeTareaxxx"),(req,res)=>
         connection.query(
             "UPDATE tbl_tareaxxx SET\
                     numeroEstadoxx=?, \
-                    usuariGestionx='', fechaxGestionx=null WHERE codigoTareaxxx = ? ",
+                    usuariGestionx=?, fechaxGestionx=null WHERE codigoTareaxxx = ? ",
                     [numeroEstadoxx, usuariCreacion,codigoTareaxxx],
                     (error,results)=>{
                         if(error){
                             estado['message']="Error al actualizar";
                             banderaReg=false;
                         }
-                    }); 
+                    });
     }
     connection.query(
         "INSERT INTO tbl_histarea (\
@@ -616,6 +616,43 @@ router.get('/homework/historial/:codigoTareaxxx',(req,res)=>{
     });  
 
     connection.end; 
+});
+
+router.delete('/homework/delete',(req,res)=>{
+    const connection = mysqlConnection;
+    console.log("entra");
+    const codigoTareaxxx = req.body.codigoTareaxxx;
+    const usuariCreacion = req.body.usuariCreacion;
+
+    let insertHistorial =[codigoTareaxxx,usuariCreacion];
+        console.log(insertHistorial);
+    let estado = [{"estado":false, "message":"Error al Actualizar en la Base de Datos, intente más tarde"}];
+    estado = estado[0];
+    
+    let banderaReg = true;
+
+    connection.query("START TRANSACTION");
+
+    connection.query(
+    "UPDATE tbl_tareaxxx SET\
+            numeroEstadoxx=0, \
+            usuariModifica=?, fechaxModifica=NOW() WHERE codigoTareaxxx = ? ",
+            [usuariCreacion,codigoTareaxxx],
+            (error,results)=>{
+                if(error){
+                    estado['message']="Error al eliminar";
+                    connection.query("ROLLBACK");
+                    estado['estado']=false;
+                    res.status(500).send(error); 
+                }
+                else{
+                    connection.query("COMMIT");
+                    estado['estado']=true;
+                    estado['message']="Tarea Eliminada Correctamente";  
+                    res.status(200).send(estado);
+                }
+            });
+    connection.end;
 });
 /*
 para verificar el token lo mandamos en el tercer parametro de la consulta que se haga

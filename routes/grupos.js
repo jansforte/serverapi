@@ -6,16 +6,16 @@ const mysqlConnection = require('../database');
 router.post("/registerGroup",(req,res)=>{
     let connection = mysqlConnection;
     let {nombreGrupoxxx,
-        codigoDocentex,
+        docentes,
         codigoEtapaxxx} = req.body;
     
-    const insert = [codigoDocentex,codigoEtapaxxx,nombreGrupoxxx];
-    //console.log(insert);
+    const insert = [codigoEtapaxxx,nombreGrupoxxx];
+    console.log(insert);
     var estado = [{"estado":false, "message":"No se pudo Realizar el Registro"}];
     estado = estado[0];
     connection.query("START TRANSACTION");
     connection.query("INSERT INTO tbl_grupoxxx( "+
-            "codigoDocentex, codigoEtapaxxx, nombreGrupoxxx, "+
+            "codigoEtapaxxx, nombreGrupoxxx, "+
             "fechaxCreacion) VALUES ("+
             "?,NOW())",[insert],(error,result)=>{
         if(error){
@@ -24,6 +24,11 @@ router.post("/registerGroup",(req,res)=>{
             connection.query("ROLLBACK");
             res.status(500).send(estado);
         }else{
+            console.log(result.insertId);
+            for(let docente of docentes){
+                let grupodoc = [result.insertId, docente.value];
+                connection.query("INSERT INTO tbl_grupdocn(codigoGrupoxxx,codigoDocentex)VALUE(?)",[grupodoc]);
+            }
             estado['message']='El Registro se realizó correctamente';
             estado['estado']=true;
             connection.query("COMMIT");
@@ -64,7 +69,7 @@ router.get("/getGroups",(req,res)=>{
     " FROM tbl_grupoxxx a LEFT JOIN tbl_grupstud b ON a.codigoGrupoxxx = b.codigoGrupoxxx "+
     " LEFT JOIN tbl_estudnte c ON b.codigoEstudnte = c.codigoEstudnte "+
     " LEFT JOIN tbl_proyecto d ON c.codigoEstudnte = d.codigoEstudnte "+
-    " LEFT JOIN tbl_docentex e ON a.codigoDocentex = e.codigoDocentex "+
+    //" LEFT JOIN tbl_docentex e ON a.codigoDocentex = e.codigoDocentex "+
     " WHERE d.codigoProystat != 4 AND a.codigoEtapaxxx = ? "+ 
     conditionadmin + conditionGroup +
     " ORDER BY a.nombreGrupoxxx ";
