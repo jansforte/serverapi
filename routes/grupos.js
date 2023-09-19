@@ -39,6 +39,34 @@ router.post("/registerGroup",(req,res)=>{
     connection.end; 
 });
 
+/* Traemos los grupos con nombre de los docentes del grupo */
+router.get("/getKind",(req,res, )=>{
+    let connection = mysqlConnection;
+    let {codigoEtapaxxx} = req.query;
+    let conditionEtapa = !codigoEtapaxxx ? " ":" AND b.codigoEtapaxxx = '"+codigoEtapaxxx+"' ";
+    let query ="SELECT b.codigoGrupoxxx, COUNT(DISTINCT a.codigoEstudnte) as cantidad, UPPER(b.nombreGrupoxxx) as nombreGrupoxxx,  \
+	TRIM(GROUP_CONCAT(DISTINCT COALESCE(CONCAT(' ',d.nombreDocentex,' ',d.apelliDocentex), d.nombreDocentex))) as docentes, \
+    b.codigoEtapaxxx \
+    FROM tbl_grupoxxx b \
+    LEFT JOIN tbl_grupstud a ON a.codigoGrupoxxx=b.codigoGrupoxxx \
+    LEFT JOIN tbl_grupdocn c ON b.codigoGrupoxxx = c.codigoGrupoxxx \
+    LEFT JOIN tbl_docentex d ON c.codigoDocentex=d.codigoDocentex \
+    WHERE b.numeroEstadoxx=1 "+conditionEtapa+" \
+    GROUP BY b.codigoGrupoxxx" ;
+    connection.query(query,[codigoEtapaxxx],(error,result)=>{
+        if(error){
+            console.log(error);
+            res.status(500).send(error);
+        }
+        if(result){
+            console.log(query);
+            res.status(200).send(result);
+        }
+    });
+    connection.end; 
+});
+
+/*
 router.get("/getKind",(req,res)=>{
     let connection = mysqlConnection;
     let {codigoEtapaxxx} = req.query;
@@ -56,7 +84,7 @@ router.get("/getKind",(req,res)=>{
         }
     });
     connection.end; 
-});
+});*/
 
 router.get("/getGroups",(req,res)=>{
     let connection = mysqlConnection;
