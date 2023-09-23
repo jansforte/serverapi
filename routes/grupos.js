@@ -6,16 +6,16 @@ const mysqlConnection = require('../database');
 router.post("/registerGroup",(req,res)=>{
     let connection = mysqlConnection;
     let {nombreGrupoxxx,
-        docentes,
+        docentes, emailxUsuariox,
         codigoEtapaxxx} = req.body;
     
-    const insert = [codigoEtapaxxx,nombreGrupoxxx];
+    const insert = [codigoEtapaxxx,nombreGrupoxxx, emailxUsuariox];
     console.log(insert);
     var estado = [{"estado":false, "message":"No se pudo Realizar el Registro"}];
     estado = estado[0];
     connection.query("START TRANSACTION");
     connection.query("INSERT INTO tbl_grupoxxx( "+
-            "codigoEtapaxxx, nombreGrupoxxx, "+
+            "codigoEtapaxxx, nombreGrupoxxx, usuariCreacion"+
             "fechaxCreacion) VALUES ("+
             "?,NOW())",[insert],(error,result)=>{
         if(error){
@@ -39,6 +39,56 @@ router.post("/registerGroup",(req,res)=>{
     connection.end; 
 });
 
+router.put("/updateGroup",(req,res)=>{
+    let connection = mysqlConnection;
+    let {nombreGrupoxxx,
+        docentes, codigoGrupoxxx,
+        codigoEtapaxxx} = req.body;
+    
+    const insert = [codigoEtapaxxx,nombreGrupoxxx];
+    console.log(insert);
+    var estado = [{"estado":false, "message":"No se pudo Realizar el Registro"}];
+    estado = estado[0];
+    connection.query("START TRANSACTION");
+    connection.query("UPDATE tbl_grupoxxx SET codigoEtapaxxx=?, "+
+            "nombreGrupoxxx= ?, "+
+            "fechaxCreacion= NOW() "+
+            " WHERE codigoGrupoxxx = ?",[codigoEtapaxxx,nombreGrupoxxx,codigoGrupoxxx],(error,result)=>{
+        if(error){
+            console.log(error);
+            estado['message']=error;
+            connection.query("ROLLBACK");
+            res.status(500).send(estado);
+        }else{
+            connection.query("DELETE FROM tbl_grupdocn WHERE codigoGrupoxxx = ?",[codigoGrupoxxx]);
+            for(let docente of docentes){
+                let grupodoc = [codigoGrupoxxx, docente.value];
+                connection.query("INSERT INTO tbl_grupdocn(codigoGrupoxxx,codigoDocentex)VALUE(?)",[grupodoc]);
+            }
+            estado['message']='El Grupo se actualizó correctamente';
+            estado['estado']=true;
+            connection.query("COMMIT");
+            console.log(estado);
+            res.status(200).send(estado);
+        }
+    });
+    connection.end; 
+});
+
+router.get("/getTeachbyteam", (req,res)=>{
+    let connection = mysqlConnection;
+    let {codigoGrupoxxx} = req.query;
+    let query = "SELECT b.codigoDocentex as value, CONCAT(b.nombreDocentex,' ',b.apelliDocentex) as label \
+     FROM tbl_grupdocn a, tbl_docentex b WHERE a.codigoDocentex=b.codigoDocentex AND a.codigoGrupoxxx = ?";
+    connection.query(query,[codigoGrupoxxx],(err,result)=>{
+        console.log(query);
+        if(result){
+            res.status(200).send(result);
+        }
+    })
+    connection.end; 
+});
+
 /* Traemos los grupos con nombre de los docentes del grupo */
 router.get("/getKind",(req,res, )=>{
     let connection = mysqlConnection;
@@ -59,13 +109,39 @@ router.get("/getKind",(req,res, )=>{
             res.status(500).send(error);
         }
         if(result){
-            console.log(query);
             res.status(200).send(result);
         }
     });
     connection.end; 
 });
 
+
+router.delete("/dropGroup",(req,res)=>{
+    let connection = mysqlConnection;
+    let {codigoGrupoxxx, emailxUsuariox} = req.query;
+
+    let estado = [{"estado":false, "message":"No se pudo Realizar la eliminación"}];
+    estado = estado[0];
+    connection.query("START TRANSACTION");
+    connection.query("DELETE FROM tbl_grupstud WHERE codigoGrupoxxx = ?",[codigoGrupoxxx]);
+    connection.query("DELETE FROM tbl_grupdocn WHERE codigoGrupoxxx = ?",[codigoGrupoxxx]);
+    connection.query("UPDATE tbl_grupoxxx SET numeroEstadoxx=0 , usuariCreacion = ? \
+     WHERE codigoGrupoxxx = ?",[emailxUsuariox,codigoGrupoxxx],(error,result)=>{
+        if(error){
+            console.log(error);
+            connection.query("ROLLBACK");
+            res.status(500).send(estado);
+        }else{
+            estado['message']='El Grupo se eliminó correctamente';
+            estado['estado']=true;
+            connection.query("COMMIT");
+            console.log(estado);
+            res.status(200).send(estado);
+        }
+     });
+
+    connection.end; 
+});
 /*
 router.get("/getKind",(req,res)=>{
     let connection = mysqlConnection;

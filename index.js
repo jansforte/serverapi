@@ -44,7 +44,7 @@ app.get('/listacalicar',(req, res)=>{
 app.get('/listaDocentes/:all',(req, res)=>{
     
     var connection = mysqlConnection;    
-    connection.query("SELECT a.codigoDocentex as value, CONCAT(a.nombreDocentex,' ',a.apelliDocentex,' - ',b.nombreEtapaxxx) as label"+
+    connection.query("SELECT a.codigoDocentex as value, CONCAT(a.nombreDocentex,' ',a.apelliDocentex) as label"+
     " FROM tbl_docentex a LEFT JOIN tbl_etapaxxx b ON a.codigoEtapaxxx = b.codigoEtapaxxx ",(error, result)=>{
             if(error)
                 res.status(500).send(error);
