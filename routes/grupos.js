@@ -90,10 +90,12 @@ router.get("/getTeachbyteam", (req,res)=>{
 });
 
 /* Traemos los grupos con nombre de los docentes del grupo */
-router.get("/getKind",(req,res, )=>{
+router.get("/getKind",(req,res, )=>{ 
     let connection = mysqlConnection;
-    let {codigoEtapaxxx} = req.query;
+    let {codigoEtapaxxx, codigoGrupoxxx} = req.query;
+    
     let conditionEtapa = !codigoEtapaxxx ? " ":" AND b.codigoEtapaxxx = '"+codigoEtapaxxx+"' ";
+    let conditionGrupo = !codigoGrupoxxx ? " ":" AND b.codigoGrupoxxx = '"+codigoGrupoxxx+"' ";
     let query ="SELECT b.codigoGrupoxxx, COUNT(DISTINCT a.codigoEstudnte) as cantidad, UPPER(b.nombreGrupoxxx) as nombreGrupoxxx,  \
 	TRIM(GROUP_CONCAT(DISTINCT COALESCE(CONCAT(' ',d.nombreDocentex,' ',d.apelliDocentex), d.nombreDocentex))) as docentes, \
     b.codigoEtapaxxx \
@@ -102,6 +104,7 @@ router.get("/getKind",(req,res, )=>{
     LEFT JOIN tbl_grupdocn c ON b.codigoGrupoxxx = c.codigoGrupoxxx \
     LEFT JOIN tbl_docentex d ON c.codigoDocentex=d.codigoDocentex \
     WHERE b.numeroEstadoxx=1 "+conditionEtapa+" \
+    "+conditionGrupo+" \
     GROUP BY b.codigoGrupoxxx" ;
     connection.query(query,[codigoEtapaxxx],(error,result)=>{
         if(error){
@@ -114,6 +117,7 @@ router.get("/getKind",(req,res, )=>{
     });
     connection.end; 
 });
+
 
 
 router.delete("/dropGroup",(req,res)=>{
@@ -162,6 +166,7 @@ router.get("/getKind",(req,res)=>{
     connection.end; 
 });*/
 
+//Aqui obtengo los estudiantes que no tienen grupo
 router.get("/getGroups",(req,res)=>{
     let connection = mysqlConnection;
     //console.log(req.query);
@@ -196,6 +201,29 @@ router.get("/getGroups",(req,res)=>{
     });
     connection.end; 
 });
+
+router.get("/getEstudiantes",(req,res)=>{
+    let connection = mysqlConnection;
+    
+    let {codigoGrupoxxx} = req.query;
+    connection.query(
+        "SELECT a.codigoProyecto,a.nombreProyecto, a.descriProyecto, CONCAT(b.nombreEstudnte,' ',b.apelliEstudnte) as nombreEstudnte, \
+            b.emailxUsuariox as emailxEstudnte, \
+            (SELECT COUNT(1) FROM tbl_tareaxxx WHERE codigoProyecto=a.codigoProyecto AND codigoEtapaxxx=a.codigoEtapaxxx AND numeroEstadoxx!=0) as totalxTareaxxx, \
+            (SELECT COUNT(1) FROM tbl_tareaxxx WHERE codigoProyecto=a.codigoProyecto AND codigoEtapaxxx=a.codigoEtapaxxx AND numeroEstadoxx=3 ) as tareaxEjecutad \
+         FROM tbl_proyecto a, tbl_estudnte b WHERE a.codigoEstudnte=b.codigoEstudnte \
+         AND a.codigoEstudnte IN(SELECT codigoEstudnte FROM tbl_grupstud WHERE codigoGrupoxxx = ?)",[codigoGrupoxxx],
+         (error,result)=>{
+            if(error){
+                console.log(error);
+                res.status(500).send(error);
+            }
+            if(result){
+                res.status(200).send(result);
+            }
+         });
+    connection.end;  
+})
 
 router.delete("/deleteItem/:codigoGrupstud",(req,res)=>{
     let connection = mysqlConnection;

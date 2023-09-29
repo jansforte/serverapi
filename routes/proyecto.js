@@ -432,6 +432,10 @@ router.post('/homework/register',(req,res)=>{
                     let observacion = "Se crea la tarea al estudiante";
                     let numeroEstadoxx = "1";
                     let archivAdjuntox = "";
+                    
+                    connection.query("UPDATE tbl_tareaxxx SET codigoEtapaxxx=(\
+                        SELECT codigoEtapaxxx FROM tbl_proyecto WHERE codigoProyecto = ?) \
+                        WHERE codigoTareaxxx = ? ",[codigoProyecto,codigoTareaxxx]);
 
                     let insertHistorial =[codigoTareaxxx,observacion,numeroEstadoxx,archivAdjuntox,usuariCreacion];
                     connection.query(
