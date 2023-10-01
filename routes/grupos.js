@@ -208,11 +208,12 @@ router.get("/getEstudiantes",(req,res)=>{
     let {codigoGrupoxxx} = req.query;
     connection.query(
         "SELECT a.codigoProyecto,a.nombreProyecto, a.descriProyecto, CONCAT(b.nombreEstudnte,' ',b.apelliEstudnte) as nombreEstudnte, \
-            b.emailxUsuariox as emailxEstudnte, \
+            b.emailxUsuariox as emailxEstudnte, c.codigoGrupstud,\
             (SELECT COUNT(1) FROM tbl_tareaxxx WHERE codigoProyecto=a.codigoProyecto AND codigoEtapaxxx=a.codigoEtapaxxx AND numeroEstadoxx!=0) as totalxTareaxxx, \
             (SELECT COUNT(1) FROM tbl_tareaxxx WHERE codigoProyecto=a.codigoProyecto AND codigoEtapaxxx=a.codigoEtapaxxx AND numeroEstadoxx=3 ) as tareaxEjecutad \
-         FROM tbl_proyecto a, tbl_estudnte b WHERE a.codigoEstudnte=b.codigoEstudnte \
-         AND a.codigoEstudnte IN(SELECT codigoEstudnte FROM tbl_grupstud WHERE codigoGrupoxxx = ?)",[codigoGrupoxxx],
+         FROM tbl_proyecto a, tbl_estudnte b, tbl_grupstud c WHERE a.codigoEstudnte=b.codigoEstudnte \
+         AND a.codigoEstudnte = c.codigoEstudnte \
+         AND c.codigoGrupoxxx = ?",[codigoGrupoxxx],
          (error,result)=>{
             if(error){
                 console.log(error);
