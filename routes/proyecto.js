@@ -21,7 +21,9 @@ const storage = multer.diskStorage({
         cb(null,DIRECTORIO);
     }, 
     filename: function(req,file,cb){
-        cb(null,file.originalname)
+        if(file){
+            cb(null,file.originalname)
+        }
     }
 });
   
@@ -116,11 +118,12 @@ router.get("/exist/doc/:emailxUsuariox",(req,res)=>{
     var connection = mysqlConnection;
     let {emailxUsuariox} = req.params;
     if(emailxUsuariox){
-        connection.query("SELECT a.codigoProyecto FROM tbl_proyecto a "+
-        " LEFT JOIN tbl_estudnte b ON a.codigoEstudnte = b.codigoEstudnte "+
+        connection.query("SELECT a.*, c.nombreEtapaxxx FROM tbl_proyecto a "+
+        " INNER JOIN tbl_estudnte b ON a.codigoEstudnte = b.codigoEstudnte "+
+        " INNER JOIN tbl_etapaxxx c ON a.codigoEtapaxxx = c.codigoEtapaxxx "+
         " WHERE b.emailxUsuariox = ?",[emailxUsuariox],(error,result)=>{
             if(result[0]){
-                res.status(200).send(true);
+                res.status(200).send(result);
             }else{
                 res.status(200).send(false);        
             }
@@ -202,7 +205,7 @@ router.post('/register',upload.single("documeProyecto"),(req,res)=>{
     const emailxUsuariox = req.body.emailxUsuariox;
     const nombreProyecto = req.body.nombreProyecto;
     const descriProyecto = req.body.descriProyecto;
-    const nombreArchivox = req.body.nombreArchivox;
+    const nombreArchivox = req.body.nombreArchivox ? req.body.nombreArchivox : '';
     
     let   codigoEstudnte = "";
     let   nombreEstudnte = "";
