@@ -255,7 +255,7 @@ router.post('/register',upload.single("documeProyecto"),(req,res)=>{
 });
 
 router.post('/update',actualizar.single("documeProyecto"),(req,res)=>{
-    console.log(req.body);
+    
     //const {emailxUsuariox, clavexUsuariox} = req.body;
     const emailxUsuariox = req.body.emailxUsuariox;
     const codigoPerfilxx = req.body.codigoPerfilxx;
@@ -333,6 +333,41 @@ router.post('/update',actualizar.single("documeProyecto"),(req,res)=>{
     });
     connection.end;
     console.log("entra");
+});
+
+router.put('/update',actualizar.single("documeProyecto"),(req,res)=>{
+    
+    //const {emailxUsuariox, clavexUsuariox} = req.body;
+    const emailxUsuariox = req.body.emailxUsuariox;
+    const codigoProyecto = req.body.codigoProyecto;
+    const nombreProyecto = req.body.nombreProyecto;
+    const descriProyecto = req.body.descriProyecto;
+    
+
+    var estado = [{"estado":false, "message":"Error al Registrar en la Base de Datos, intente más tarde"}];
+    estado = estado[0];
+
+    var connection = mysqlConnection;
+    
+    connection.query("START TRANSACTION");
+    connection.query(
+        "UPDATE tbl_proyecto SET nombreProyecto = ?, descriProyecto = ?"+
+        " WHERE codigoProyecto = ? ",
+        [nombreProyecto,descriProyecto,codigoProyecto],(error,result)=>{
+            if(error){
+                console.log(error);
+                estado['message']=error;
+                connection.query("ROLLBACK");
+                res.status(500).send(estado);
+            }else{
+                console.table(result);
+                estado['estado']=true;
+                connection.query("COMMIT");
+                estado['message']="Datos Actualizados Correctamente";  
+                res.status(200).send(estado);
+            }
+        });
+    connection.end;
 });
  
 router.post('/updateProyect',actualizar.single("documeProyecto"),(req,res)=>{

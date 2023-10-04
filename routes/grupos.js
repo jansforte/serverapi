@@ -184,9 +184,10 @@ router.get("/getGroups",(req,res)=>{
     " ORDER BY a.nombreGrupoxxx ";
 
     if(codigoPerfilxx==1 && !codigoEtapaxxx){
-        query = "SELECT a.nombreEstudnte,a.apelliEstudnte,a.emailxUsuariox,b.nombreProyecto "+
+        query = "SELECT a.nombreEstudnte,a.apelliEstudnte,a.emailxUsuariox,b.nombreProyecto, b.codigoProyecto "+
     " FROM tbl_estudnte a, tbl_proyecto b "+
-    " WHERE a.codigoEstudnte = b.codigoEstudnte AND b.codigoProystat != 4 AND a.codigoEstudnte NOT IN(SELECT codigoEstudnte FROM tbl_grupstud) ";
+    " WHERE a.codigoEstudnte = b.codigoEstudnte AND b.codigoProystat != 4 \
+      AND b.codigoProyecto NOT IN(SELECT codigoProyecto FROM tbl_grupstud) ";
     }
 
     connection.query(query,[codigoEtapaxxx],(error,result)=>{
@@ -213,6 +214,7 @@ router.get("/getEstudiantes",(req,res)=>{
             (SELECT COUNT(1) FROM tbl_tareaxxx WHERE codigoProyecto=a.codigoProyecto AND codigoEtapaxxx=a.codigoEtapaxxx AND numeroEstadoxx=3 ) as tareaxEjecutad \
          FROM tbl_proyecto a, tbl_estudnte b, tbl_grupstud c WHERE a.codigoEstudnte=b.codigoEstudnte \
          AND a.codigoEstudnte = c.codigoEstudnte \
+         AND a.codigoProyecto = c.codigoProyecto \
          AND c.codigoGrupoxxx = ?",[codigoGrupoxxx],
          (error,result)=>{
             if(error){
@@ -255,6 +257,7 @@ router.put("/updateItem/:codigoGrupstud",(req,res)=>{
     let connection = mysqlConnection;
     let codigoGrupstud = req.params.codigoGrupstud;
     let codigoGrupoxxx = req.body.codigoGrupoxxx;
+    let codigoProyecto = req.body.codigoProyecto;
     let emailxUsuariox = req.body.emailxEstudnte;
 
     console.log(req.params);
@@ -283,7 +286,7 @@ router.put("/updateItem/:codigoGrupstud",(req,res)=>{
     }else{
         connection.query("SELECT codigoEstudnte FROM tbl_estudnte WHERE emailxUsuariox=?",[emailxUsuariox],(error,result)=>{
             if(result){
-                connection.query("INSERT INTO tbl_grupstud (codigoGrupoxxx,codigoEstudnte) VALUES(?,?)",[codigoGrupoxxx,result[0]['codigoEstudnte']]
+                connection.query("INSERT INTO tbl_grupstud (codigoGrupoxxx,codigoEstudnte,codigoProyecto) VALUES(?,?,?)",[codigoGrupoxxx,result[0]['codigoEstudnte'],codigoProyecto]
                 ,(e,r)=>{
                     if(e){
                         estado['message']="Error al cambiar el estudiante de Grupo";
