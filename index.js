@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const cors = require('cors');
 const mysqlConnection = require('./database');
 const app = express();
-const { router: notifyRouter } = require('./routes/notify');
+//const { router: notifyRouter } = require('./routes/notify');
 
 app.use(cors());
 app.use(express.json());
