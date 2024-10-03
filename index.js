@@ -183,7 +183,7 @@ app.use('/api/offers',require('./routes/ofertas'));
 app.use('/api/group',require('./routes/grupos'));
 app.use('/api/exito',require('./routes/casosExito'));
 app.use('/api/evaluacion',require('./routes/evaluacion'));
-app.use('/api/notify', notifyRouter);
+//app.use('/api/notify', notifyRouter);
 app.use('/api/master',require('./routes/maestro'));
 app.use('/api/acta',require('./routes/actas'));
 app.use('/api/aboutus',require('./routes/acerca'));
