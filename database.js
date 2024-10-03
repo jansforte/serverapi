@@ -14,7 +14,7 @@ const credencials = {
     database:'VIbrimMy5a',
     port: '3306'
 }
-
+ 
 const mysqlConnection = mysql.createConnection(credencials);
 
 module.exports = mysqlConnection;
