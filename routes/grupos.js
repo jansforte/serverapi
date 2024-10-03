@@ -15,7 +15,7 @@ router.post("/registerGroup",(req,res)=>{
     estado = estado[0];
     connection.query("START TRANSACTION");
     connection.query("INSERT INTO tbl_grupoxxx( "+
-            "codigoEtapaxxx, nombreGrupoxxx, usuariCreacion"+
+            "codigoEtapaxxx, nombreGrupoxxx, usuariCreacion,"+
             "fechaxCreacion) VALUES ("+
             "?,NOW())",[insert],(error,result)=>{
         if(error){
@@ -177,9 +177,10 @@ router.get("/getGroups",(req,res)=>{
     let query = "SELECT a.nombreGrupoxxx,a.codigoEtapaxxx,c.nombreEstudnte,c.apelliEstudnte,c.emailxUsuariox,d.nombreProyecto,b.codigoGrupstud,a.codigoGrupoxxx "+
     " FROM tbl_grupoxxx a LEFT JOIN tbl_grupstud b ON a.codigoGrupoxxx = b.codigoGrupoxxx "+
     " LEFT JOIN tbl_estudnte c ON b.codigoEstudnte = c.codigoEstudnte "+
-    " LEFT JOIN tbl_proyecto d ON c.codigoEstudnte = d.codigoEstudnte "+
-    //" LEFT JOIN tbl_docentex e ON a.codigoDocentex = e.codigoDocentex "+
-    " WHERE d.codigoProystat != 4 AND a.codigoEtapaxxx = ? "+ 
+    " LEFT JOIN tbl_proyecto d ON c.codigoEstudnte = d.codigoEstudnte, "+
+    " tbl_grupdocn f  \
+        LEFT JOIN tbl_docentex e ON f.codigoDocentex = e.codigoDocentex "+
+    " WHERE d.codigoProystat != 4 AND a.codigoEtapaxxx = ? AND a.codigoGrupoxxx = f.codigoGrupoxxx "+ 
     conditionadmin + conditionGroup +
     " ORDER BY a.nombreGrupoxxx ";
 
@@ -253,6 +254,14 @@ router.delete("/deleteItem/:codigoGrupstud",(req,res)=>{
     connection.end; 
 });
 
+function actualizaEtapaProyecto(connection,codigoGrupoxxx,codigoProyecto){
+    connection.query(`UPDATE tbl_proyecto 
+    SET codigoEtapaxxx = (SELECT codigoEtapaxxx FROM tbl_grupoxxx WHERE codigoGrupoxxx = ? )
+    WHERE codigoProyecto = ?
+    `,[codigoGrupoxxx,codigoProyecto]);
+
+}
+
 router.put("/updateItem/:codigoGrupstud",(req,res)=>{
     let connection = mysqlConnection;
     let codigoGrupstud = req.params.codigoGrupstud;
@@ -260,8 +269,6 @@ router.put("/updateItem/:codigoGrupstud",(req,res)=>{
     let codigoProyecto = req.body.codigoProyecto;
     let emailxUsuariox = req.body.emailxEstudnte;
 
-    console.log(req.params);
-    console.log(req.body);
     let estado = [{"estado":false, "message":"No se pudo Realizar la actualización"}];
     estado = estado[0];
     connection.query("START TRANSACTION");
@@ -270,35 +277,33 @@ router.put("/updateItem/:codigoGrupstud",(req,res)=>{
                         "WHERE codigoGrupstud=? ",[codigoGrupoxxx,codigoGrupstud],(error,result)=>{
             if(error){
                 estado['message']="Error al cambiar el estudiante de Grupo";
-                console.log(error);
                 connection.query("ROLLBACK");
                 res.status(500).send(estado);
             }
             else if(result){
-                console.log("sin");
+                actualizaEtapaProyecto(connection,codigoGrupoxxx,codigoProyecto);
                 estado['message']="El cambio se realizó exitosamente";
                 estado['estado']=true;
-                console.log(result);
                 connection.query("COMMIT");
                 res.status(200).send(estado);
             }
         });
-    }else{
+    }
+    else{
         connection.query("SELECT codigoEstudnte FROM tbl_estudnte WHERE emailxUsuariox=?",[emailxUsuariox],(error,result)=>{
             if(result){
                 connection.query("INSERT INTO tbl_grupstud (codigoGrupoxxx,codigoEstudnte,codigoProyecto) VALUES(?,?,?)",[codigoGrupoxxx,result[0]['codigoEstudnte'],codigoProyecto]
                 ,(e,r)=>{
                     if(e){
                         estado['message']="Error al cambiar el estudiante de Grupo";
-                        console.log(e);
+                        
                         connection.query("ROLLBACK");
                         res.status(500).send(estado);
                     }
                     else if(r){
-                        console.log("sin");
+                        actualizaEtapaProyecto(connection,codigoGrupoxxx,codigoProyecto);
                         estado['message']="El cambio se realizó exitosamente";
                         estado['estado']=true;
-                        console.log(r);
                         connection.query("COMMIT");
                         res.status(200).send(estado);
                     }
@@ -307,7 +312,6 @@ router.put("/updateItem/:codigoGrupstud",(req,res)=>{
         })
     }
     connection.end; 
-    console.log("llega"); 
 });
 
 /*

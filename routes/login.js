@@ -1,4 +1,5 @@
 const {Router} = require('express');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const router = Router();
 const mysqlConnection = require('../database');
@@ -76,6 +77,16 @@ const savePicture = multer.diskStorage({
 }); 
  
 const changePicture = multer({storage: savePicture});
+
+function cifrado(texto){
+    let result = crypto.createHash('sha256').update(""+texto).digest('hex');
+    let mitad = Math.floor(result.length / 2);
+    let primeraMitad = result.substring(0,mitad);
+    let segundaMitad = result.substring(mitad,result.length);
+    let nuevo = segundaMitad+""+primeraMitad;
+    let final = nuevo.split("").reverse().join("");
+    return final;
+}
  
 router.post('/user',(req,res)=>{
     //console.log(req.body);
@@ -86,6 +97,8 @@ router.post('/user',(req,res)=>{
     var estado = [{"estado":false, "message":"El usuario no existe"}];
     estado = estado[0];   
 
+    let passCifrad = cifrado(clavexUsuariox);
+
     var connection = mysqlConnection;
     connection.query("SELECT a.*, UPPER(a.nombreUsuariox) as username FROM tbl_usuarios a WHERE a.emailxUsuariox= ? ",
     [emailxUsuariox], 
@@ -94,7 +107,7 @@ router.post('/user',(req,res)=>{
                 estado['message']=error;
                 res.status(500).send(estado);
             }
-            else if(result[0] && result[0]['clavexUsuariox']===clavexUsuariox){
+            else if(result[0] && result[0]['clavexUsuariox']===passCifrad){
                 connection.query("UPDATE tbl_usuarios SET fechaxIngresox=NOW() WHERE emailxUsuariox=?",[emailxUsuariox]);
                 const token = jwt.sign(
                     {email: result[0][emailxUsuariox]},
@@ -107,7 +120,7 @@ router.post('/user',(req,res)=>{
                 estado['message']=datos;
                 res.status(200).send(estado);
             }
-            else if(result[0] && result[0]['clavexUsuariox']!=clavexUsuariox){
+            else if(result[0] && result[0]['clavexUsuariox']!=passCifrad){
                 estado['message']="Contraseña Incorrecta";
                 res.status(200).send(estado);
             }
@@ -228,6 +241,7 @@ router.post("/updateDatas",actualizar.single("documeProyecto"),(req,res)=>{
         apelliEstudnte, codigoEstudnte,emailxEstudnte,
         fechaxNacimien, generoEstudnte,direccEstudnte,
         numeroCelularx, profesEstudnte, codigoEtapaxxx,
+        codigoTipoempr,
         clavexUsuariox} = req.body;
     const nombre=nombreEstudnte ? nombreEstudnte: 0;
     const apellido=apelliEstudnte ? apelliEstudnte: 0;
@@ -239,8 +253,12 @@ router.post("/updateDatas",actualizar.single("documeProyecto"),(req,res)=>{
     const celular=numeroCelularx ? numeroCelularx: 0;
     const profesion=profesEstudnte ? profesEstudnte: 0;
     const etapax=codigoEtapaxxx ? codigoEtapaxxx: 0; 
-    const clave=clavexUsuariox ? clavexUsuariox: 0;
+    const tipoEmprendedor=codigoTipoempr ? codigoTipoempr: 3; 
 
+    let clave=clavexUsuariox ? clavexUsuariox: 0;
+    if(clave!=0){
+        clave = cifrado(clave);
+    }
     //console.log(datosBody);
    // console.log(datosBody[0].nombreDocentex);
     var estado = [{"estado":false, "message":"Error de Consulta"}];
@@ -264,8 +282,6 @@ router.post("/updateDatas",actualizar.single("documeProyecto"),(req,res)=>{
                         "numeroCelularx = ?, profesDocentex = ?, codigoEtapaxxx = ? "+
                 "  WHERE codigoDocentex = ? ",actualizarDatosD,(error, result)=>{
                     if(error){
-                        console.log("entra");
-                        console.log(error);
                         estado['message']=error;
                         connection.query("ROLLBACK");
                         res.status(500).send(estado);
@@ -294,17 +310,15 @@ router.post("/updateDatas",actualizar.single("documeProyecto"),(req,res)=>{
             }
             else if(atob(codigoProfilex,'base64')==3){
                 let actualizarDatosE =[
-                    nombre,apellido,email,fecha,genero, direccion, celular,profesion,cedula
+                    nombre,apellido,email,fecha,genero, direccion, celular,profesion,tipoEmprendedor,cedula
                 ];
                 connection.query(
                     "UPDATE tbl_estudnte SET "+
                         "nombreEstudnte = ?, apelliEstudnte = ?, emailxUsuariox = ?,"+
                         "fechaxNacimien = ?, generoEstudnte = ?, direccEstudnte = ?,"+
-                        "numeroCelularx = ?, profesEstudnte = ? "+
+                        "numeroCelularx = ?, profesEstudnte = ?, codigoTipoempr = ? "+
                 "  WHERE codigoEstudnte = ? ",actualizarDatosE,(error, result)=>{
                     if(error){ 
-                        console.log("entra");
-                        console.log(error);
                         estado['message']=error;
                         connection.query("ROLLBACK");
                         res.status(500).send(estado);
@@ -317,8 +331,6 @@ router.post("/updateDatas",actualizar.single("documeProyecto"),(req,res)=>{
                         "  WHERE emailxUsuariox = ? ",[clave,email],(error, result)=>{
                             if(error){
                                 estado['message']=error;
-                                console.log("entra");
-                                console.log(error);
                                 connection.query("ROLLBACK");
                                 res.status(500).send(estado);
                             }else{
@@ -424,6 +436,8 @@ router.post("/registerTeacher",(req,res)=>{
         profesDocentex, emailxUsuariox, clavexUsuariox, etapas
     } = req.body;
     
+    let passCifrad = cifrado(clavexUsuariox);
+
     const nombreUsuariox = nombreDocentex+" "+apelliDocentex;
     let codigoEtapax =etapas[0].value;
 
@@ -435,7 +449,7 @@ router.post("/registerTeacher",(req,res)=>{
         if(error){
             estado['message']=error;
             connection.query("ROLLBACK");
-            res.status(500).send(estado);
+            res.status(200).send(estado);
         }else{
             for(let etapa of etapas){
                 let docentap = [etapa.value,codigoDocentex];
@@ -445,7 +459,7 @@ router.post("/registerTeacher",(req,res)=>{
                 if(error){
                     estado['message']=error;
                     connection.query("ROLLBACK");
-                    res.status(500).send(estado);
+                    res.status(200).send(estado);
                 }else{
                     
                     const codigoAdminxxx = result2[0]['codigoAdminxxx'];
@@ -465,16 +479,16 @@ router.post("/registerTeacher",(req,res)=>{
                             if(error){
                                 estado['message']=error;
                                 connection.query("ROLLBACK");
-                                res.status(500).send(estado);
+                                res.status(200).send(estado);
                             }else{
-                                const insertarUsuario = [emailxDocentex,nombreUsuariox,clavexUsuariox ]
+                                const insertarUsuario = [emailxDocentex,nombreUsuariox,passCifrad ]
                                 connection.query(
                                     "INSERT INTO tbl_usuarios (emailxUsuariox, nombreUsuariox, clavexUsuariox, codigoPerfilxx)VALUES(?,2)",
                                     [insertarUsuario],(error,result)=>{
                                         if(error){
                                             estado['message']=error;
                                             connection.query("ROLLBACK",(error,result)=>{});
-                                            res.status(500).send(estado);
+                                            res.status(200).send(estado);
                                         }else{
                                             
                                             estado['estado']=true;

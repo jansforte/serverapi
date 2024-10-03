@@ -142,7 +142,7 @@ router.get('/list/all',(req,res)=>{
     profile == '2' ? codigoProystat : codigoProystat="'0'";
     connection.query(
     "SELECT a.*, CONCAT(UPPER(b.nombreEstudnte),' ',UPPER(b.apelliEstudnte)) as nombreEstudnte, UPPER(c.nombreProystat) as nombreProystat, "+
-    "UPPER(d.nombreEtapaxxx) as nombreEtapaxxx, b.emailxUsuariox "+
+    "UPPER(d.nombreEtapaxxx) as nombreEtapaxxx, COALESCE(b.numeroCelularx,'N/A') numeroCelularx, b.emailxUsuariox "+
     "FROM tbl_proyecto a LEFT JOIN tbl_proystat c ON a.codigoProystat = c.codigoProystat"+
     ", tbl_estudnte b, tbl_etapaxxx d "+
     "WHERE a.codigoProystat NOT IN("+codigoProystat+") AND a.codigoEstudnte=b.codigoEstudnte AND a.codigoEtapaxxx=d.codigoEtapaxxx "+
@@ -166,7 +166,7 @@ router.get('/list/:search',(req,res)=>{
     var {search} = req.params;
     var buscar = '%'+search+'%';
     connection.query("SELECT a.*,CONCAT(UPPER(b.nombreEstudnte),' ',UPPER(b.apelliEstudnte)) as nombreEstudnte, UPPER(c.nombreProystat) as nombreProystat, "+
-    "UPPER(d.nombreEtapaxxx) as nombreEtapaxxx, b.emailxUsuariox"+
+    "UPPER(d.nombreEtapaxxx) as nombreEtapaxxx, COALESCE(b.numeroCelularx,'N/A') numeroCelularx, b.emailxUsuariox"+
     " FROM tbl_proyecto a LEFT JOIN tbl_proystat c ON a.codigoProystat = c.codigoProystat"+
     ", tbl_estudnte b, tbl_etapaxxx d  "+
     "WHERE a.codigoProystat NOT IN("+codigoProystat+") AND a.codigoEstudnte=b.codigoEstudnte AND a.codigoEtapaxxx=d.codigoEtapaxxx "+
@@ -180,21 +180,21 @@ router.get('/list/:search',(req,res)=>{
     connection.end;
 }) 
 
-router.get('/single/:search',(req,res)=>{
-    var connection = mysqlConnection;
+router.get('/single/:codigoProyecto',(req,res)=>{
+    let connection = mysqlConnection;
     
-    var {search} = req.params;
-    connection.query("SELECT a.*,CONCAT(UPPER(b.nombreEstudnte),' ',UPPER(b.apelliEstudnte)) as nombreEstudnte, UPPER(c.nombreProystat) as nombreProystat, "+
-    "UPPER(d.nombreEtapaxxx) as nombreEtapaxxx, b.emailxUsuariox"+
-    " FROM tbl_proyecto a LEFT JOIN tbl_proystat c ON a.codigoProystat = c.codigoProystat"+
-    ", tbl_estudnte b, tbl_etapaxxx d  "+
-    "WHERE a.codigoEstudnte=b.codigoEstudnte AND a.codigoEtapaxxx=d.codigoEtapaxxx "+
-    "AND b.emailxUsuariox = ? "+
-    "ORDER BY a.codigoProystat ASC, a.estadoNotifica DESC, a.nombreProyecto ASC",[search],(error,result)=>{
+    let {codigoProyecto} = req.params;
+    codigoProyecto = atob(codigoProyecto);
+    connection.query("SELECT COALESCE(b.numeroCelularx,'N/A') numeroCelularx, \
+    CONCAT(UPPER(b.nombreEstudnte),' ',UPPER(b.apelliEstudnte)) as nombreEstudnte,\
+    UPPER(a.nombreProyecto) nombreProyecto, a.descriProyecto \
+    FROM tbl_proyecto a, tbl_estudnte b \
+    WHERE a.codigoEstudnte=b.codigoEstudnte \
+    AND a.codigoProyecto = ? ",[codigoProyecto],(error,result)=>{
         if(error)
-        res.status(500).send(error); 
+            {res.status(500).send(error); }
         else
-            res.status(200).send(result);
+            {res.status(200).send(result);}
     });  
     connection.end;
 }) 
@@ -256,83 +256,121 @@ router.post('/register',upload.single("documeProyecto"),(req,res)=>{
 
 router.post('/update',actualizar.single("documeProyecto"),(req,res)=>{
     
-    //const {emailxUsuariox, clavexUsuariox} = req.body;
-    const emailxUsuariox = req.body.emailxUsuariox;
-    const codigoPerfilxx = req.body.codigoPerfilxx;
-    const codigoProyecto = req.body.codigoProyecto;
-    var   codigoEtapaxxx = req.body.codigoEtapaxxx;
-    var   codigoProystat = req.body.codigoProystat;
-    const observDocentex = req.body.observDocentex;
+        //const {emailxUsuariox, clavexUsuariox} = req.body;
+        const emailxUsuariox = req.body.emailxUsuariox;
+        const codigoPerfilxx = req.body.codigoPerfilxx;
+        const codigoProyecto = req.body.codigoProyecto;
+        var   codigoEtapaxxx = req.body.codigoEtapaxxx;
+        var   codigoProystat = req.body.codigoProystat;
+        const observDocentex = req.body.observDocentex;
+        const realCodigoProystat =req.body.codigoProystat;
 
-    var estado = [{"estado":false, "message":"Error al Registrar en la Base de Datos, intente más tarde"}];
-    estado = estado[0];
+        var estado = [{"estado":false, "message":"Error al Registrar en la Base de Datos, intente más tarde"}];
+        estado = estado[0];
 
-    var connection = mysqlConnection;
-    
-    connection.query("START TRANSACTION",(error,result)=>{
-        if(error){
-            estado['message']=error;
-            connection.query("ROLLBACK",(error,result)=>{});
-            res.status(500).send(estado);
-        }else{
-            if(codigoPerfilxx){
-                connection.query(
-                    "UPDATE tbl_proyecto SET codigoEtapaxxx = ?, codigoProystat = ?, observDocentex=?, fechaxDocentex = NOW(), estadoNotifica=1"+
-                    " WHERE codigoProyecto = ?",
-                    [codigoEtapaxxx,codigoProystat, observDocentex, codigoProyecto],(error,result)=>{
-                        if(error){
-                            estado['message']=error;
-                            connection.query("ROLLBACK",(error,result)=>{});
-                            res.status(500).send(estado);
-                        }else{
-                            connection.query("SELECT codigoEstudnte FROM tbl_proyecto WHERE codigoProyecto = ?",[codigoProyecto],(error,valor)=>{
-                                if(valor){
-                                    const codigoEstudnte = valor[0]['codigoEstudnte'];
-                                    const tbl_histnoti = [codigoEstudnte,'Revisión de Proyecto','El Docente ha revisado tu proyecto','proyect'];
-                                    connection.query("INSERT INTO tbl_histnoti(codigoUsuariox, nombreNotifica, descriNotifica, tipoxxNotifica, fechaxCreacion) VALUES (?,NOW())",[tbl_histnoti]);
-                                }
-                            })
-                            estado['estado']=true;
-                            connection.query("COMMIT",(error,result)=>{});
-                            estado['message']="Datos Registrados Correctamente";  
-                            res.status(200).send(estado);
-                        }
-                    });    
+        var connection = mysqlConnection;
+        
+        connection.query("START TRANSACTION",(error,result)=>{
+            if(error){
+                estado['message']=error;
+                connection.query("ROLLBACK",(error,result)=>{});
+                res.status(500).send(estado);
             }else{
-                if(codigoProystat == '3' && codigoEtapaxxx=='4') codigoProystat='4';
-                if(codigoProystat == '3' && codigoEtapaxxx!='4') {
-                    codigoEtapaxxx=Number(codigoEtapaxxx)+1;
-                    codigoProystat=1;
-                }
-                console.log(codigoProystat);
-                connection.query(
-                    "UPDATE tbl_proyecto SET codigoEtapaxxx = ?, codigoProystat = ?, observDocentex=?, fechaxDocentex = NOW(), estadoNotifica=1"+
-                    " WHERE codigoProyecto = ?",
-                    [codigoEtapaxxx,codigoProystat, observDocentex, codigoProyecto],(error,result)=>{
-                        if(error){
-                            console.log(error);
-                            estado['message']=error;
-                            connection.query("ROLLBACK",(error,result)=>{});
-                            res.status(500).send(estado);
-                        }else{
-                            connection.query("SELECT codigoEstudnte FROM tbl_proyecto WHERE codigoProyecto = ?",[codigoProyecto],(error,valor)=>{
-                                if(valor){
-                                    const codigoEstudnte = valor[0]['codigoEstudnte'];
-                                    const tbl_histnoti = [codigoEstudnte,'Revisión de Proyecto','El Docente ha revisado tu proyecto','proyect'];
-                                    connection.query("INSERT INTO tbl_histnoti(codigoUsuariox, nombreNotifica, descriNotifica, tipoxxNotifica, fechaxCreacion) VALUES (?,NOW())",[tbl_histnoti]);
-                                }
-                            })
-                            estado['estado']=true;
-                            connection.query("COMMIT",(error,result)=>{});
-                            estado['message']="Datos Registrados Correctamente";  
-                            res.status(200).send(estado);
-                        }
-                    }); 
-            }         
-        }
-    });
-    connection.end;
-    console.log("entra");
+                if(codigoPerfilxx){
+                    connection.query(
+                        "UPDATE tbl_proyecto SET codigoEtapaxxx = ?, codigoProystat = ?, observDocentex=?, fechaxDocentex = NOW(), estadoNotifica=1"+
+                        " WHERE codigoProyecto = ?",
+                        [codigoEtapaxxx,codigoProystat, observDocentex, codigoProyecto],(error,result)=>{
+                            if(error){
+                                estado['message']=error;
+                                connection.query("ROLLBACK",(error,result)=>{});
+                                res.status(500).send(estado);
+                            }else{
+                                connection.query("SELECT codigoEstudnte FROM tbl_proyecto WHERE codigoProyecto = ?",[codigoProyecto],(error,valor)=>{
+                                    if(valor){
+                                        const codigoEstudnte = valor[0]['codigoEstudnte'];
+                                        const tbl_histnoti = [codigoEstudnte,'Revisión de Proyecto','El Docente ha revisado tu proyecto','proyect'];
+                                        connection.query("INSERT INTO tbl_histnoti(codigoUsuariox, nombreNotifica, descriNotifica, tipoxxNotifica, fechaxCreacion) VALUES (?,NOW())",[tbl_histnoti]);
+                                    }
+                                })
+                                estado['estado']=true;
+                                connection.query("COMMIT",(error,result)=>{});
+                                estado['message']="Datos Registrados Correctamente";  
+                                res.status(200).send(estado);
+                            }
+                        });
+                }else{
+                    if(codigoProystat == '3' && codigoEtapaxxx=='4') {codigoProystat='4';}
+                    if(codigoProystat == '3' && codigoEtapaxxx!='4') {
+                        codigoEtapaxxx=Number(codigoEtapaxxx)+1;
+                        codigoProystat=1;
+                    }
+                    console.log(codigoProystat);
+                    connection.query(
+                        "UPDATE tbl_proyecto SET codigoEtapaxxx = ?, codigoProystat = ?, observDocentex=?, fechaxDocentex = NOW(), estadoNotifica=1"+
+                        " WHERE codigoProyecto = ?",
+                        [codigoEtapaxxx,codigoProystat, observDocentex, codigoProyecto],(error,result)=>{
+                            if(error){
+                                console.log(error);
+                                estado['message']=error;
+                                connection.query("ROLLBACK");
+                                res.status(500).send(estado);
+                            }else{
+                                
+                                connection.query("SELECT codigoEstudnte FROM tbl_proyecto WHERE codigoProyecto = ?",[codigoProyecto],(error,valor)=>{
+                                    if(valor){
+                                        const codigoEstudnte = valor[0]['codigoEstudnte'];
+                                        const tbl_histnoti = [codigoEstudnte,'Revisión de Proyecto','El Docente ha revisado tu proyecto','proyect'];
+                                        connection.query("INSERT INTO tbl_histnoti(codigoUsuariox, nombreNotifica, descriNotifica, tipoxxNotifica, fechaxCreacion) VALUES (?,NOW())",[tbl_histnoti]);
+                                    }
+
+                                    let estudiante = valor[0]['codigoEstudnte'];
+                                    if(realCodigoProystat==3){
+                                        connection.query(`SELECT COUNT(codigoEstudnte) cantidad, b.codigoGrupoxxx 
+                                        FROM tbl_grupstud a RIGHT JOIN tbl_grupoxxx b ON a.codigoGrupoxxx = b.codigoGrupoxxx 
+                                            WHERE b.codigoEtapaxxx = ?
+                                            GROUP BY codigoGrupoxxx ORDER BY cantidad ASC, b.codigoGrupoxxx ASC `,[codigoEtapaxxx],(error,resultado)=>{
+                                                if(resultado.length>0){
+                                                    let codigoGrupoxxxNew = resultado[0]['codigoGrupoxxx'];
+                                                    connection.query(`UPDATE tbl_grupstud SET codigoGrupoxxx = ? 
+                                                    WHERE codigoEstudnte = ? AND codigoProyecto = ?`,[codigoGrupoxxxNew,estudiante,codigoProyecto]);
+                                                    
+                                                    estado['estado']=true;
+                                                    connection.query("COMMIT");
+                                                    estado['message']="Datos Registrados Correctamente"; 
+                                                    res.status(200).send(estado);
+                                                }
+                                                else if(resultado && resultado.length<1){
+                                                    connection.query(`
+                                                    INSERT INTO tbl_grupstud(codigoGrupoxxx, codigoEstudnte, codigoProyecto) 
+                                                    SELECT codigoGrupoxxx, ?, ? FROM tbl_grupoxxx WHERE codigoEtapaxxx = ? LIMIT 1
+                                                    `, [estudiante,codigoProyecto,codigoEtapaxxx],(error,result)=>{
+                                                        estado['estado']=true;
+
+                                                        connection.query("COMMIT");
+                                                        estado['message']="Datos Registrados Correctamente";  
+                                                        res.status(200).send(estado);
+                                                    });
+                                                }
+                                                
+                                        });
+                                    }
+                                    else{
+                                        estado['estado']=true;
+                                        connection.query("COMMIT");
+                                        estado['message']="Datos Registrados Correctamente";  
+                                        res.status(200).send(estado);
+                                    }
+
+                                })
+                                
+                            }
+                        }); 
+                }         
+            }
+        });
+        connection.end;
+   
 });
 
 router.put('/update',actualizar.single("documeProyecto"),(req,res)=>{
@@ -421,11 +459,14 @@ router.get('/homework/listasks/:codigoProyecto',(req,res)=>{
     const connection = mysqlConnection;
     let {codigoProyecto} = req.params;
     codigoProyecto = atob(codigoProyecto);
-    connection.query("SELECT b.*, IF(b.usuariModifica IS NULL, a.nombreUsuariox,c.nombreUsuariox) as nombreUsuariox, d.nombreEstatare "+
-    " FROM tbl_tareaxxx b LEFT JOIN tbl_usuarios a ON a.emailxUsuariox=b.usuariCreacion "+
-    " LEFT JOIN tbl_usuarios c ON c.emailxUsuariox=b.usuariModifica "+
-    " LEFT JOIN tbl_estatare d ON b.numeroEstadoxx = d.codigoEstatare " +
-    " WHERE b.numeroEstadoxx!='0' AND b.codigoProyecto = ? ORDER BY b.fechaxTareaxxx DESC",
+    connection.query(
+    "SELECT b.*, IF(b.usuariModifica IS NULL, a.nombreUsuariox,c.nombreUsuariox) as nombreUsuariox, d.nombreEstatare \
+    FROM tbl_tareaxxx b LEFT JOIN tbl_usuarios a ON a.emailxUsuariox=b.usuariCreacion \
+    LEFT JOIN tbl_usuarios c ON c.emailxUsuariox=b.usuariModifica \
+    LEFT JOIN tbl_estatare d ON b.numeroEstadoxx = d.codigoEstatare \
+    WHERE b.numeroEstadoxx!='0' \
+    AND b.codigoProyecto = ? \
+    ORDER BY b.fechaxTareaxxx DESC",
     [codigoProyecto],(error,result)=>{
         if(error){
             res.status(500).send(error); 
